@@ -1,0 +1,72 @@
+{
+  "$schema": "Artemis II Telemetry Snapshot v1.0",
+  "$note": "Mock telemetry for development. Replace with live NASA API data.",
+  "$data_source": "Simulated from NASA Artemis II mission planning documents",
+
+  "mission": {
+    "name": "Artemis II",
+    "phase": "Translunar Coast",
+    "subphase": "Mid-course correction window",
+    "status": "Nominal",
+    "status_detail": "All Systems Go — No anomalies",
+    "launch_time_utc": "2025-04-07T18:34:00.000Z",
+    "elapsed_seconds": 16440,
+    "elapsed_formatted": "T+ 04:34:00"
+  },
+
+  "telemetry": {
+    "altitude_km": 52840,
+    "velocity_kmh": 28412,
+    "velocity_ms": 7892,
+    "distance_earth_km": 89340,
+    "distance_moon_km": 291440,
+    "crew_g": 0.00018,
+    "cabin_pressure_kpa": 101.3,
+    "cabin_temp_c": 21.2,
+    "power_solar_kw": 12.4,
+    "power_battery_pct": 98,
+    "trajectory": "Free-return",
+    "attitude": "Passive Thermal Control Roll"
+  },
+
+  "spacecraft": {
+    "name": "Orion",
+    "serial": "Artemis II CM",
+    "systems": {
+      "eclss": "Nominal",
+      "gn_and_c": "Nominal",
+      "communications": "Nominal",
+      "power": "Nominal",
+      "thermal": "Nominal",
+      "propulsion": "Nominal",
+      "abort_system": "Jettisoned (nominal)"
+    }
+  },
+
+  "crew": [
+    { "id": "CDR", "name": "Reid Wiseman",   "role": "Commander",          "agency": "NASA", "health": "Nominal", "last_contact": "14:28 UTC" },
+    { "id": "PLT", "name": "Victor Glover",  "role": "Pilot",              "agency": "NASA", "health": "Nominal", "last_contact": "14:28 UTC" },
+    { "id": "MS1", "name": "Christina Koch", "role": "Mission Specialist 1","agency": "NASA", "health": "Nominal", "last_contact": "14:28 UTC" },
+    { "id": "MS2", "name": "Jeremy Hansen",  "role": "Mission Specialist 2","agency": "CSA",  "health": "Nominal", "last_contact": "14:28 UTC" }
+  ],
+
+  "communications": {
+    "dsn_station": "Goldstone",
+    "signal_strength_pct": 94,
+    "downlink_rate_mbps": 4.2,
+    "latency_sec": 0.3,
+    "next_handover": "Canberra DSN in 1h 22m"
+  },
+
+  "alerts": [],
+
+  "next_milestone": {
+    "name": "ICPS Separation",
+    "eta_hours": 19.5,
+    "description": "Interim Cryogenic Propulsion Stage separates from Orion"
+  },
+
+  "timestamp_utc": "2025-04-07T23:08:00.000Z",
+  "data_freshness_sec": 5,
+  "source": "MOCK — connect live NASA API at telemetryAPI endpoint"
+}

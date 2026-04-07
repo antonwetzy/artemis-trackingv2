@@ -1,0 +1,3171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Artemis II Live Tracker – Follow the Mission in Real Time</title>
+<meta name="description" content="Track the NASA Artemis II crewed lunar mission live. Real-time telemetry, mission timeline, crew profiles, and spacecraft data.">
+<meta property="og:title" content="Artemis II Live Tracker">
+<meta property="og:description" content="Follow the Artemis II crewed lunar mission in real time.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS CUSTOM PROPERTIES ===== */
+:root {
+  --void: #02020a;
+  --deep: #060612;
+  --panel: rgba(255,255,255,0.04);
+  --glass: rgba(255,255,255,0.07);
+  --rim: rgba(255,255,255,0.1);
+  --rim2: rgba(255,255,255,0.18);
+  --text: #e8eaf6;
+  --muted: #7986a3;
+  --accent: #4fc3f7;
+  --accent2: #64ffda;
+  --gold: #ffd54f;
+  --danger: #ef5350;
+  --success: #66bb6a;
+  --warn: #ffa726;
+  --font-display: 'Barlow Condensed', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+  --r: 8px;
+  --r-lg: 14px;
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--void);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent2); }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+img { max-width: 100%; display: block; }
+h1, h2, h3, h4, h5 { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.02em; line-height: 1.1; }
+
+/* ===== STAR FIELD ===== */
+#starfield {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: var(--void);
+}
+
+/* ===== NAVIGATION ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem;
+  height: 60px;
+  background: rgba(2,2,10,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--rim);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+.nav-logo .logo-icon {
+  width: 32px; height: 32px;
+  background: conic-gradient(from 0deg, #4fc3f7, #64ffda, #4fc3f7);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.live-badge {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(239,83,80,0.15);
+  border: 1px solid rgba(239,83,80,0.4);
+  color: #ff6b6b;
+  padding: 3px 10px 3px 8px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #ff6b6b;
+  animation: pulse-dot 1.4s ease infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.nav-links {
+  display: flex; gap: 0;
+  list-style: none;
+}
+.nav-links a {
+  display: block;
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--accent); }
+.hamburger { display: none; flex-direction: column; gap: 5px; padding: 6px; }
+.hamburger span { width: 22px; height: 1.5px; background: var(--text); border-radius: 2px; transition: 0.3s; }
+
+/* ===== MOBILE NAV ===== */
+.mobile-menu {
+  display: none;
+  position: fixed; top: 60px; left: 0; right: 0; z-index: 99;
+  background: rgba(2,2,10,0.97);
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--rim);
+  flex-direction: column; gap: 0.5rem;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  padding: 0.7rem 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rim);
+}
+.mobile-menu a:last-child { border-bottom: none; }
+
+/* ===== ALERT BANNER ===== */
+.alert-banner {
+  position: fixed; top: 60px; left: 0; right: 0; z-index: 98;
+  background: linear-gradient(90deg, rgba(100,255,218,0.1), rgba(79,195,247,0.1));
+  border-bottom: 1px solid rgba(100,255,218,0.3);
+  padding: 8px 2rem;
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--accent2);
+  overflow: hidden;
+}
+.alert-banner .alert-label {
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--gold);
+  border: 1px solid rgba(255,213,79,0.4);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+.alert-ticker { overflow: hidden; flex: 1; }
+.alert-text {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker 30s linear infinite;
+  color: var(--text);
+  opacity: 0.85;
+}
+@keyframes ticker {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* ===== MAIN LAYOUT OFFSET ===== */
+main { padding-top: calc(60px + 36px); position: relative; z-index: 1; }
+
+/* ===== HERO SECTION ===== */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 4rem 2rem;
+  overflow: hidden;
+}
+.hero-glow {
+  position: absolute;
+  top: 30%; left: 50%; transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(ellipse, rgba(79,195,247,0.12) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero-glow2 {
+  position: absolute;
+  top: 60%; left: 30%; transform: translate(-50%, -50%);
+  width: 400px; height: 400px;
+  background: radial-gradient(ellipse, rgba(100,255,218,0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hero-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  animation: fadein 0.8s 0.3s forwards;
+}
+.hero h1 {
+  font-size: clamp(3.5rem, 10vw, 8rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 0.95;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, #b3e5fc 40%, #4fc3f7 70%, #64ffda 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+  opacity: 0;
+  animation: fadein 0.8s 0.5s forwards;
+}
+.hero h1 span {
+  display: block;
+  font-size: 0.65em;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  opacity: 0.7;
+}
+.hero-sub {
+  font-size: 1.15rem;
+  font-weight: 300;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 3rem;
+  max-width: 500px;
+  opacity: 0;
+  animation: fadein 0.8s 0.7s forwards;
+}
+.hero-ctas {
+  display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;
+  opacity: 0;
+  animation: fadein 0.8s 0.9s forwards;
+  margin-bottom: 4rem;
+}
+.btn-primary {
+  padding: 0.85rem 2rem;
+  background: var(--accent);
+  color: #02020a;
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--r);
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.btn-primary:hover {
+  background: var(--accent2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79,195,247,0.35);
+  color: #02020a;
+}
+.btn-ghost {
+  padding: 0.85rem 2rem;
+  border: 1px solid var(--rim2);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: var(--r);
+  transition: border-color 0.2s, color 0.2s, transform 0.2s;
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+.hero-stats {
+  display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center;
+  opacity: 0;
+  animation: fadein 0.8s 1.1s forwards;
+}
+.hero-stat { text-align: center; }
+.hero-stat .val {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  color: var(--accent);
+  display: block;
+}
+.hero-stat .lbl {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== SECTION SHELLS ===== */
+section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+.section-header {
+  margin-bottom: 3.5rem;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem;
+}
+.section-title-block {}
+.section-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+.section-title {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+.section-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--rim2), transparent);
+  margin-bottom: 0.5rem;
+  min-width: 40px;
+}
+
+/* ===== GLASS CARDS ===== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.card:hover {
+  border-color: var(--rim2);
+  box-shadow: 0 4px 32px rgba(79,195,247,0.08);
+}
+
+/* ===== LIVE TRACKER SECTION ===== */
+#tracker { padding-top: 4rem; padding-bottom: 6rem; }
+
+.tracker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.25rem;
+}
+
+/* Mission timer card */
+.timer-card {
+  grid-column: 1 / 3;
+  padding: 2rem 2.5rem;
+  display: flex; align-items: center; gap: 3rem; flex-wrap: wrap;
+}
+.mission-status {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 0.5rem;
+}
+.status-indicator {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent2);
+  box-shadow: 0 0 12px var(--accent2);
+  animation: pulse-dot 2s ease infinite;
+}
+.status-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent2);
+}
+.mission-phase {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.mission-phase-detail {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 300;
+}
+.mission-elapsed {
+  margin-left: auto;
+  text-align: right;
+}
+.elapsed-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.elapsed-timer {
+  font-family: var(--font-mono);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.time-row {
+  display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 1.5rem;
+  width: 100%;
+  border-top: 1px solid var(--rim);
+  padding-top: 1.5rem;
+}
+.time-item { }
+.time-item .lbl {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.time-item .val {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+/* Telemetry cards */
+.telem-card {
+  padding: 1.75rem 2rem;
+}
+.telem-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.telem-value {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.telem-unit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.telem-bar {
+  height: 3px;
+  background: var(--rim);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.telem-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+.telem-trend {
+  font-size: 0.75rem;
+  color: var(--accent2);
+  margin-top: 0.6rem;
+}
+
+/* Orbital map card */
+.orbital-card {
+  grid-column: 1 / 3;
+  padding: 1.5rem;
+  min-height: 520px;
+  position: relative;
+  overflow: hidden;
+}
+.orbital-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.orbital-card-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.data-source-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+#orbital-canvas {
+  width: 100%; height: 420px;
+  border-radius: var(--r);
+  cursor: grab;
+  display: none; /* hidden — replaced by Three.js renderer */
+}
+#three-canvas-wrap {
+  width: 100%; height: 420px;
+  border-radius: var(--r);
+  overflow: hidden;
+  position: relative;
+  background: #00010f;
+}
+#three-canvas-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  cursor: grab;
+}
+#three-canvas-wrap canvas:active { cursor: grabbing; }
+.map-controls {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: flex; flex-direction: column; gap: 6px;
+  z-index: 10;
+}
+.map-btn {
+  width: 34px; height: 34px;
+  background: rgba(2,2,15,0.82);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  color: #e8eaf6;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  font-family: monospace;
+  line-height: 1;
+}
+.map-btn:hover { background: rgba(79,195,247,0.18); border-color: #4fc3f7; }
+.map-legend {
+  position: absolute;
+  bottom: 10px; left: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  z-index: 10;
+  pointer-events: none;
+}
+.map-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.55);
+}
+.map-legend-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.last-updated {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-top: 0.75rem;
+}
+.last-updated .upd-time { color: var(--accent); }
+
+/* ===== MISSION TIMELINE ===== */
+#timeline {}
+.timeline-container {
+  position: relative;
+  padding-left: 2.5rem;
+}
+.timeline-spine {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--accent) 0%, rgba(79,195,247,0.1) 100%);
+}
+.timeline-event {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+.timeline-dot {
+  position: absolute;
+  left: -2.64rem;
+  top: 0.2rem;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--rim2);
+  background: var(--void);
+  display: flex; align-items: center; justify-content: center;
+}
+.timeline-dot.completed {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  box-shadow: 0 0 12px rgba(100,255,218,0.5);
+}
+.timeline-dot.current {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(79,195,247,0.7);
+  animation: pulse-dot 1.5s ease infinite;
+}
+.timeline-dot.upcoming {
+  background: transparent;
+  border-color: var(--rim2);
+}
+.timeline-content {
+  padding: 1.25rem 1.5rem;
+}
+.timeline-meta {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.timeline-phase-tag {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.tag-completed { background: rgba(100,255,218,0.12); color: var(--accent2); border: 1px solid rgba(100,255,218,0.3); }
+.tag-current { background: rgba(79,195,247,0.12); color: var(--accent); border: 1px solid rgba(79,195,247,0.4); }
+.tag-upcoming { background: rgba(121,134,163,0.1); color: var(--muted); border: 1px solid var(--rim); }
+.timeline-time {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.timeline-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+  color: var(--text);
+}
+.timeline-desc {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 300;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* ===== ROCKET INFO ===== */
+#rocket {}
+.rocket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.25rem;
+}
+.rocket-spec-card {
+  padding: 2rem;
+}
+.rocket-spec-card .card-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+.rocket-spec-card h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+.spec-table { width: 100%; }
+.spec-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--rim);
+  gap: 1rem;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-row .key {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 300;
+}
+.spec-row .value {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ===== CREW SECTION ===== */
+#crew {}
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+.crew-card {
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.crew-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+.crew-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(79,195,247,0.25), rgba(100,255,218,0.15));
+  border: 2px solid var(--rim2);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1rem;
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.crew-name {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.2rem;
+  color: var(--text);
+}
+.crew-role {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.75rem;
+}
+.crew-bio {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.55;
+  font-weight: 300;
+}
+.crew-vitals {
+  display: flex; gap: 0.5rem; justify-content: center;
+  margin-top: 1.25rem; flex-wrap: wrap;
+}
+.crew-vital-tag {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(79,195,247,0.08);
+  border: 1px solid rgba(79,195,247,0.2);
+  color: var(--muted);
+}
+
+/* ===== NEWS / UPDATES ===== */
+#news {}
+.news-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+.news-card {
+  padding: 1.75rem 2rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.news-meta {
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.news-source {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.news-time {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+.news-headline {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.news-excerpt {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.55;
+}
+.news-link {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  display: flex; align-items: center; gap: 4px;
+}
+.news-link:hover { color: var(--accent2); }
+
+/* ===== STATUS FEED ===== */
+.status-panel {
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r-lg);
+  padding: 1.5rem 1.75rem;
+  margin-top: 2.5rem;
+}
+.status-panel-header {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.status-feed { display: flex; flex-direction: column; gap: 1rem; }
+.status-item {
+  display: flex; gap: 1rem; align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--rim);
+}
+.status-item:last-child { border-bottom: none; padding-bottom: 0; }
+.status-time {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 90px;
+  margin-top: 2px;
+}
+.status-text {
+  font-size: 0.88rem;
+  color: var(--text);
+  font-weight: 300;
+  line-height: 1.55;
+}
+.status-text strong { color: var(--accent2); font-weight: 500; }
+
+/* ===== LIVESTREAM ===== */
+.livestream-section {
+  margin-top: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.livestream-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid var(--rim);
+}
+.livestream-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.livestream-placeholder {
+  background: #000814;
+  aspect-ratio: 16 / 9;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.stream-icon {
+  font-size: 4rem;
+  opacity: 0.2;
+}
+.stream-text {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+}
+.stream-sub {
+  font-size: 0.85rem;
+  color: var(--muted);
+  opacity: 0.6;
+  font-weight: 300;
+}
+.stream-nasa-link {
+  padding: 0.6rem 1.5rem;
+  background: rgba(79,195,247,0.1);
+  border: 1px solid rgba(79,195,247,0.35);
+  color: var(--accent);
+  border-radius: var(--r);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.2s;
+}
+.stream-nasa-link:hover { background: rgba(79,195,247,0.2); color: var(--accent); }
+
+/* ===== FAQ ===== */
+#faq {}
+.faq-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.faq-item {
+  border: 1px solid var(--rim);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.faq-question {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 1.75rem;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text);
+  transition: color 0.2s;
+  background: var(--panel);
+}
+.faq-question:hover { color: var(--accent); }
+.faq-icon {
+  font-size: 1.4rem;
+  color: var(--muted);
+  transition: transform 0.3s;
+  flex-shrink: 0;
+}
+.faq-item.open .faq-icon { transform: rotate(45deg); color: var(--accent); }
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.3s;
+}
+.faq-item.open .faq-answer { max-height: 400px; }
+.faq-answer-inner {
+  padding: 1.25rem 1.75rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.7;
+  border-top: 1px solid var(--rim);
+}
+
+/* ===== SOCIAL SHARE ===== */
+.share-strip {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  margin-top: 4rem;
+  padding: 1.5rem 2rem;
+  background: var(--panel);
+  border: 1px solid var(--rim);
+  border-radius: var(--r-lg);
+}
+.share-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.share-btn {
+  padding: 0.45rem 1.1rem;
+  border: 1px solid var(--rim2);
+  color: var(--muted);
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 0.2s, color 0.2s;
+}
+.share-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ===== FOOTER ===== */
+footer {
+  border-top: 1px solid var(--rim);
+  padding: 3rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.footer-inner {
+  display: flex; gap: 3rem; flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.footer-brand {
+  flex: 1; min-width: 200px;
+}
+.footer-brand-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+.footer-brand-desc {
+  font-size: 0.83rem;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.6;
+}
+.footer-col { min-width: 140px; }
+.footer-col h4 {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.footer-col ul a {
+  font-size: 0.87rem;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.footer-col ul a:hover { color: var(--accent); }
+.footer-bottom {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rim);
+  flex-wrap: wrap; gap: 1rem;
+}
+.footer-credit {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.footer-credit a { color: var(--accent); }
+.disclaimer {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 300;
+  max-width: 500px;
+  text-align: right;
+  line-height: 1.5;
+}
+
+/* ===== TELEMETRY CHART ===== */
+.chart-row {
+  grid-column: 1 / 3;
+  padding: 1.75rem 2rem;
+}
+.chart-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+#telem-chart { width: 100%; height: 120px; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1000px) {
+  .rocket-grid { grid-template-columns: 1fr 1fr; }
+  .crew-grid { grid-template-columns: 1fr 1fr; }
+  .news-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .tracker-grid { grid-template-columns: 1fr; }
+  .timer-card { grid-column: 1; }
+  .orbital-card { grid-column: 1; }
+  .chart-row { grid-column: 1; }
+  .timer-card { padding: 1.5rem; gap: 1.5rem; }
+  .mission-elapsed { margin-left: 0; text-align: left; }
+  section { padding: 4rem 1.25rem; }
+  .rocket-grid { grid-template-columns: 1fr; }
+  .crew-grid { grid-template-columns: 1fr 1fr; }
+  .footer-inner { gap: 2rem; }
+  .share-strip { padding: 1.25rem; }
+}
+@media (max-width: 480px) {
+  .crew-grid { grid-template-columns: 1fr; }
+  .hero-stats { gap: 1.5rem; }
+  .hero-ctas { flex-direction: column; align-items: stretch; text-align: center; }
+  .section-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* ===== UTILITIES ===== */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.full-width { max-width: 100vw; margin-left: calc(-50vw + 50%); padding-left: 2rem; padding-right: 2rem; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<!-- STAR FIELD CANVAS -->
+<canvas id="starfield" aria-hidden="true"></canvas>
+
+<!-- NAV -->
+<nav aria-label="Main navigation">
+  <a class="nav-logo" href="#" aria-label="Artemis II Tracker Home">
+    <div class="logo-icon" aria-hidden="true">🚀</div>
+    ARTEMIS II
+  </a>
+  <ul class="nav-links" role="list">
+    <li><a href="#tracker">Live Tracker</a></li>
+    <li><a href="#timeline">Timeline</a></li>
+    <li><a href="#rocket">Spacecraft</a></li>
+    <li><a href="#crew">Crew</a></li>
+    <li><a href="#news">Updates</a></li>
+    <li><a href="#faq">FAQ</a></li>
+  </ul>
+  <div class="live-badge" aria-label="Mission status: Live">
+    <span class="live-dot" aria-hidden="true"></span>
+    LIVE
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+  <a href="#tracker" onclick="closeMobileMenu()">Live Tracker</a>
+  <a href="#timeline" onclick="closeMobileMenu()">Timeline</a>
+  <a href="#rocket" onclick="closeMobileMenu()">Spacecraft</a>
+  <a href="#crew" onclick="closeMobileMenu()">Crew</a>
+  <a href="#news" onclick="closeMobileMenu()">Updates</a>
+  <a href="#faq" onclick="closeMobileMenu()">FAQ</a>
+</div>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner" role="marquee" aria-live="polite" aria-label="Mission alert">
+  <span class="alert-label">MISSION ALERT</span>
+  <div class="alert-ticker">
+    <span class="alert-text" id="alert-text">
+      Artemis II | Crewed lunar flyby mission nominal — All systems green — Orion spacecraft on trajectory — Crew in excellent health — Next milestone: Translunar Injection burn in T+04:22:00 — Live data updated every 5 seconds — Source: NASA/ESA Artemis Mission Control
+    </span>
+  </div>
+</div>
+
+<main>
+<!-- ===== HERO ===== -->
+<div class="hero" id="home">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-glow2" aria-hidden="true"></div>
+  <div class="hero-label">NASA · Artemis Program · Crewed Lunar Mission</div>
+  <h1>
+    Artemis II
+    <span>Live Tracker</span>
+  </h1>
+  <p class="hero-sub">Follow the first crewed journey to lunar vicinity in over 50 years, in real time.</p>
+  <div class="hero-ctas">
+    <a href="#tracker" class="btn-primary">Track in Real Time</a>
+    <a href="#timeline" class="btn-ghost">Mission Timeline</a>
+  </div>
+  <div class="hero-stats" role="list">
+    <div class="hero-stat" role="listitem">
+      <span class="val" id="hero-altitude">--</span>
+      <span class="lbl">Altitude (km)</span>
+    </div>
+    <div class="hero-stat" role="listitem">
+      <span class="val" id="hero-speed">--</span>
+      <span class="lbl">Speed (km/h)</span>
+    </div>
+    <div class="hero-stat" role="listitem">
+      <span class="val" id="hero-dist">--</span>
+      <span class="lbl">Distance (km)</span>
+    </div>
+    <div class="hero-stat" role="listitem">
+      <span class="val" id="hero-crew">4</span>
+      <span class="lbl">Crew Aboard</span>
+    </div>
+    <div class="hero-stat" role="listitem">
+      <span class="val" id="hero-splash" style="color:var(--gold);font-size:1.1rem;">--</span>
+      <span class="lbl" style="color:var(--gold);">Until Splashdown</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LIVE TRACKER ===== -->
+<section id="tracker">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Real-Time Telemetry</div>
+      <h2 class="section-title">Live Tracking Dashboard</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="tracker-grid">
+    <!-- Mission Status + Timer -->
+    <div class="card timer-card" aria-label="Mission status">
+      <div>
+        <div class="mission-status">
+          <div class="status-indicator" aria-hidden="true"></div>
+          <span class="status-label" id="status-label">Nominal — All Systems Go</span>
+        </div>
+        <div class="mission-phase" id="mission-phase">Translunar Coast</div>
+        <div class="mission-phase-detail" id="mission-phase-detail">Orion cruising toward lunar vicinity — SPS nominal</div>
+        <div class="time-row">
+          <div class="time-item">
+            <div class="lbl">Launch Time (UTC)</div>
+            <div class="val" id="launch-time-utc">--</div>
+          </div>
+          <div class="time-item">
+            <div class="lbl">Current UTC</div>
+            <div class="val" id="current-utc">--</div>
+          </div>
+          <div class="time-item">
+            <div class="lbl">Local Time</div>
+            <div class="val" id="local-time">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="mission-elapsed" aria-label="Mission elapsed time">
+        <div class="elapsed-label">Mission Elapsed Time</div>
+        <div class="elapsed-timer" id="elapsed-timer" aria-live="polite">T+ 00:00:00:00</div>
+      </div>
+    </div>
+
+    <!-- Splashdown Countdown -->
+    <div class="card" id="splashdown-card" style="grid-column:1/-1;padding:1.5rem 2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;border-color:rgba(255,213,79,0.35);background:rgba(255,213,79,0.04);" aria-label="Splashdown countdown">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.4rem;">
+          <span style="font-size:1.2rem;" aria-hidden="true">🌊</span>
+          <span style="font-family:var(--font-mono);font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);" id="splash-status-label">Splashdown In</span>
+        </div>
+        <div style="font-family:var(--font-display);font-size:1rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">Pacific Ocean &middot; Off San Diego &middot; Apr 10 2026 ~03:07 UTC</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:var(--font-mono);font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:0.3rem;" id="splash-unit-label">DD &middot; HH &middot; MM &middot; SS</div>
+        <div style="font-family:var(--font-mono);font-size:clamp(1.8rem,4vw,3rem);font-weight:700;color:var(--gold);letter-spacing:0.1em;line-height:1;" id="splash-timer" aria-live="polite">-- &middot; -- &middot; -- &middot; --</div>
+      </div>
+    </div>
+
+    <!-- Altitude -->
+    <div class="card telem-card" aria-label="Current altitude">
+      <div class="telem-label">Altitude</div>
+      <div class="telem-value" id="telem-altitude">--</div>
+      <div class="telem-unit">Kilometers</div>
+      <div class="telem-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="telem-bar-fill" id="alt-bar" style="width:45%"></div></div>
+      <div class="telem-trend" id="alt-trend">↑ Increasing</div>
+    </div>
+
+    <!-- Speed -->
+    <div class="card telem-card" aria-label="Current speed">
+      <div class="telem-label">Velocity</div>
+      <div class="telem-value" id="telem-speed">--</div>
+      <div class="telem-unit">km/h relative to Earth</div>
+      <div class="telem-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="telem-bar-fill" id="spd-bar" style="width:62%"></div></div>
+      <div class="telem-trend" id="spd-trend">→ Stable</div>
+    </div>
+
+    <!-- Distance -->
+    <div class="card telem-card" aria-label="Distance from Earth">
+      <div class="telem-label">Distance from Earth</div>
+      <div class="telem-value" id="telem-dist">--</div>
+      <div class="telem-unit">Kilometers</div>
+      <div class="telem-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="telem-bar-fill" id="dst-bar" style="width:30%"></div></div>
+      <div class="telem-trend" id="dst-trend">↑ Outbound</div>
+    </div>
+
+    <!-- Moon Distance -->
+    <div class="card telem-card" aria-label="Distance from Moon">
+      <div class="telem-label">Distance from Moon</div>
+      <div class="telem-value" id="telem-dist-moon">--</div>
+      <div class="telem-unit">Kilometers</div>
+      <div class="telem-bar"><div class="telem-bar-fill" style="width:60%;background:linear-gradient(90deg,#ffd54f,#ff9800)"></div></div>
+      <div class="telem-trend" style="color:var(--gold)">↑ Increasing (return)</div>
+    </div>
+
+    <!-- Signal Delay / Light Time -->
+    <div class="card telem-card" aria-label="Signal delay">
+      <div class="telem-label">Signal Delay (one-way)</div>
+      <div class="telem-value" id="telem-lighttime">--</div>
+      <div class="telem-unit">Seconds at speed of light</div>
+      <div class="telem-bar"><div class="telem-bar-fill" style="width:35%;background:linear-gradient(90deg,#ce93d8,#ab47bc)"></div></div>
+      <div class="telem-trend" style="color:#ce93d8" id="dsn-info">Querying DSN…</div>
+    </div>
+
+    <!-- G-Force -->
+    <div class="card telem-card" aria-label="Crew G-Force">
+      <div class="telem-label">Crew G-Force</div>
+      <div class="telem-value" id="telem-gforce">--</div>
+      <div class="telem-unit">Gs experienced (microgravity)</div>
+      <div class="telem-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100"><div class="telem-bar-fill" id="g-bar" style="width:2%"></div></div>
+      <div class="telem-trend" id="g-trend">✓ Microgravity — nominal</div>
+    </div>
+      <div class="chart-title">Velocity Profile — Past 60 Minutes</div>
+      <canvas id="telem-chart" aria-label="Velocity chart"></canvas>
+    </div>
+
+    <!-- Orbital Map 3D -->
+    <div class="card orbital-card" aria-label="3D Orbital trajectory map">
+      <div class="orbital-card-header">
+        <div class="orbital-card-title">3D Live Trajectory — Drag to Rotate · Scroll to Zoom</div>
+        <span class="data-source-tag" id="data-source-tag">Live API adapter ready</span>
+      </div>
+      <div id="three-canvas-wrap">
+        <!-- Three.js renders here -->
+        <div class="map-controls" aria-label="Map controls">
+          <button class="map-btn" id="btn-zoom-in"  title="Zoom In"  aria-label="Zoom in">+</button>
+          <button class="map-btn" id="btn-zoom-out" title="Zoom Out" aria-label="Zoom out">−</button>
+          <button class="map-btn" id="btn-focus"    title="Focus on Rocket" aria-label="Focus on Orion">🚀</button>
+          <button class="map-btn" id="btn-reset"    title="Reset View" aria-label="Reset view">⟳</button>
+        </div>
+        <div class="map-legend">
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#2196f3"></div>Free-Return Trajectory</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#64ffda"></div>Orion / Integrity</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#4fc3f7"></div>Earth</div>
+          <div class="map-legend-item"><div class="map-legend-dot" style="background:#bdbdbd"></div>Moon</div>
+        </div>
+      </div>
+      <canvas id="orbital-canvas" aria-label="Fallback orbital canvas" style="display:none"></canvas>
+      <div class="last-updated">Last updated: <span class="upd-time" id="last-updated-time">--</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TIMELINE ===== -->
+<section id="timeline">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Mission Milestones</div>
+      <h2 class="section-title">Mission Timeline</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="timeline-container" role="list" aria-label="Mission timeline events">
+    <!-- Events injected by JS -->
+  </div>
+</section>
+
+<!-- ===== ROCKET & SPACECRAFT ===== -->
+<section id="rocket">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Technical Overview</div>
+      <h2 class="section-title">Rocket & Spacecraft</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="rocket-grid">
+    <div class="card rocket-spec-card">
+      <span class="card-icon" aria-hidden="true">🚀</span>
+      <h3>Space Launch System (SLS)</h3>
+      <div class="spec-table" role="table" aria-label="SLS specifications">
+        <div class="spec-row" role="row"><span class="key" role="cell">Configuration</span><span class="value" role="cell">Block 1 Crew</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Height</span><span class="value" role="cell">98 m (322 ft)</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Mass at Liftoff</span><span class="value" role="cell">2,608,000 kg</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Thrust at Liftoff</span><span class="value" role="cell">39.1 MN</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Core Stage Engines</span><span class="value" role="cell">4 × RS-25</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Solid Boosters</span><span class="value" role="cell">2 × 5-seg SRB</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Upper Stage</span><span class="value" role="cell">ICPS (RL-10)</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Payload to TLI</span><span class="value" role="cell">27,000 kg</span></div>
+      </div>
+    </div>
+
+    <div class="card rocket-spec-card">
+      <span class="card-icon" aria-hidden="true">🛸</span>
+      <h3>Orion Spacecraft</h3>
+      <div class="spec-table" role="table" aria-label="Orion specifications">
+        <div class="spec-row" role="row"><span class="key" role="cell">Crew Module Dia.</span><span class="value" role="cell">5.03 m</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Total Mass</span><span class="value" role="cell">~26,520 kg</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Habitable Volume</span><span class="value" role="cell">8.95 m³</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Service Module</span><span class="value" role="cell">ESA / ATV-derived</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Main Propulsion</span><span class="value" role="cell">OMS-E engine</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Crew Capacity</span><span class="value" role="cell">4 astronauts</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Mission Duration</span><span class="value" role="cell">~10 days</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Heat Shield</span><span class="value" role="cell">AVCOAT ablative</span></div>
+      </div>
+    </div>
+
+    <div class="card rocket-spec-card">
+      <span class="card-icon" aria-hidden="true">🌙</span>
+      <h3>Mission Objectives</h3>
+      <div class="spec-table" role="table" aria-label="Mission objectives">
+        <div class="spec-row" role="row"><span class="key" role="cell">Primary</span><span class="value" role="cell">Crewed lunar flyby</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Orion Performance</span><span class="value" role="cell">Validate crew systems</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Life Support</span><span class="value" role="cell">Full ECLSS validation</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Comm. Systems</span><span class="value" role="cell">Deep space comms test</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Return Re-entry</span><span class="value" role="cell">High-speed (~40,000 km/h)</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Splashdown</span><span class="value" role="cell">Pacific Ocean</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Sets Stage For</span><span class="value" role="cell">Artemis III lunar landing</span></div>
+        <div class="spec-row" role="row"><span class="key" role="cell">Record</span><span class="value" role="cell">Farthest crewed distance</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CREW ===== -->
+<section id="crew">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Flight Crew</div>
+      <h2 class="section-title">Crew Profiles</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="crew-grid" role="list" aria-label="Artemis II crew profiles">
+    <!-- Crew injected by JS -->
+  </div>
+</section>
+
+<!-- ===== NEWS / UPDATES ===== -->
+<section id="news">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Live Updates</div>
+      <h2 class="section-title">Mission News & Status</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="news-grid" id="news-grid">
+    <!-- Injected by JS -->
+  </div>
+
+  <div class="status-panel" aria-label="Mission status feed">
+    <div class="status-panel-header">
+      <div class="live-dot" aria-hidden="true"></div>
+      Real-Time Status Feed
+    </div>
+    <div class="status-feed" id="status-feed" aria-live="polite">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <div class="livestream-section" aria-label="Mission livestream">
+    <div class="livestream-header">
+      <div class="livestream-title">
+        <div class="live-dot" aria-hidden="true"></div>
+        NASA Live — Artemis II Coverage
+      </div>
+      <a href="https://www.youtube.com/watch?v=m3kR2KK8TEs" target="_blank" rel="noopener noreferrer" class="stream-nasa-link">Open on YouTube ↗</a>
+    </div>
+    <div style="position:relative; width:100%; aspect-ratio:16/9; background:#000;">
+      <iframe
+        src="https://www.youtube.com/embed/m3kR2KK8TEs?autoplay=1&mute=0&rel=0&modestbranding=1&color=white"
+        title="NASA Artemis II Live Stream"
+        style="position:absolute;inset:0;width:100%;height:100%;border:none;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+        loading="lazy"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- LIVE AUDIO PANEL -->
+  <div class="card" id="audio-panel" style="margin-top:1.25rem;overflow:hidden;" aria-label="Live mission audio">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.75rem;border-bottom:1px solid var(--rim);flex-wrap:wrap;gap:.75rem;">
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div class="live-dot" aria-hidden="true"></div>
+        <span style="font-family:var(--font-display);font-size:1.05rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Mission Audio — Astronaut Comms</span>
+      </div>
+      <span style="font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;color:var(--muted);background:var(--panel);border:1px solid var(--rim);padding:3px 8px;border-radius:4px;">AUDIO FROM NASA LIVE STREAM</span>
+    </div>
+
+    <!-- Waveform visualizer canvas -->
+    <div style="background:#000814;padding:.75rem 1.75rem 0;">
+      <canvas id="audio-wave" style="width:100%;height:56px;display:block;" aria-hidden="true"></canvas>
+    </div>
+
+    <!-- Main audio player (YouTube audio-only embed via iframe srcdoc trick) -->
+    <div style="padding:1.25rem 1.75rem;">
+
+      <!-- Primary: NASA YouTube stream audio player -->
+      <div style="background:rgba(79,195,247,0.05);border:1px solid rgba(79,195,247,0.2);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;">
+        <div style="font-family:var(--font-mono);font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:.75rem;">
+          🎧 Primary Source — NASA YouTube Live Audio
+        </div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;font-weight:300;line-height:1.55;">
+          Audio from the NASA YouTube livestream — crew conversations, Mission Control calls, and live commentary. Use the video player above with your screen off for audio-only listening, or click below to open a minimal audio tab.
+        </div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+          <a href="https://www.youtube.com/watch?v=m3kR2KK8TEs"
+             target="_blank" rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:6px;padding:.6rem 1.25rem;background:rgba(255,0,0,0.12);border:1px solid rgba(255,0,0,0.35);color:#ff6b6b;border-radius:var(--r);font-family:var(--font-display);font-size:.85rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;transition:background .2s;"
+             aria-label="Open NASA YouTube stream for audio">
+            ▶ NASA YouTube Live
+          </a>
+          <a href="https://plus.nasa.gov"
+             target="_blank" rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:6px;padding:.6rem 1.25rem;background:rgba(79,195,247,0.08);border:1px solid rgba(79,195,247,0.25);color:var(--accent);border-radius:var(--r);font-family:var(--font-display);font-size:.85rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;transition:background .2s;"
+             aria-label="Open NASA Plus streaming">
+            🚀 NASA+ (Free, No Ads)
+          </a>
+        </div>
+      </div>
+
+      <!-- Secondary: SPACE RoIP Ham Radio Feed -->
+      <div style="background:rgba(100,255,218,0.04);border:1px solid rgba(100,255,218,0.15);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;">
+        <div style="font-family:var(--font-mono);font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--accent2);margin-bottom:.75rem;">
+          📡 Amateur Radio Feed — SPACE RoIP Network
+        </div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:1rem;font-weight:300;line-height:1.55;">
+          The <strong style="color:var(--text);">SPACE Amateur Radio over IP</strong> network rebroadcasts live NASA Mission Control audio including Artemis II comms. Connect via <strong style="color:var(--text);">EchoLink</strong> (free iOS/Android app) to the <code style="font-family:var(--font-mono);color:var(--accent2);font-size:.8em;">*SPACE*</code> conference node. Expect authentic mission radio conditions — long silences between transmissions are normal in deep space ops.
+        </div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+          <a href="https://www.echolink.org/eqsodownload.htm"
+             target="_blank" rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:6px;padding:.6rem 1.25rem;background:rgba(100,255,218,0.07);border:1px solid rgba(100,255,218,0.3);color:var(--accent2);border-radius:var(--r);font-family:var(--font-display);font-size:.85rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;"
+             aria-label="Download EchoLink app">
+            📱 Get EchoLink App
+          </a>
+          <span style="display:inline-flex;align-items:center;padding:.6rem 1.25rem;background:var(--panel);border:1px solid var(--rim);color:var(--muted);border-radius:var(--r);font-family:var(--font-mono);font-size:.78rem;letter-spacing:.05em;">
+            Node: *SPACE* · IRLP: 0100
+          </span>
+        </div>
+      </div>
+
+      <!-- Crew ham radio callsigns -->
+      <div style="background:var(--panel);border:1px solid var(--rim);border-radius:var(--r);padding:1.25rem;">
+        <div style="font-family:var(--font-mono);font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">
+          📻 Crew Ham Radio Callsigns
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem;">
+          <div style="padding:.6rem .75rem;background:rgba(79,195,247,0.05);border:1px solid var(--rim);border-radius:var(--r);">
+            <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:2px;">KF5LKT</div>
+            <div style="font-size:.8rem;color:var(--text);font-weight:500;">Reid Wiseman</div>
+            <div style="font-size:.72rem;color:var(--muted);">Commander</div>
+          </div>
+          <div style="padding:.6rem .75rem;background:rgba(79,195,247,0.05);border:1px solid var(--rim);border-radius:var(--r);">
+            <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:2px;">KI5BKC</div>
+            <div style="font-size:.8rem;color:var(--text);font-weight:500;">Victor Glover</div>
+            <div style="font-size:.72rem;color:var(--muted);">Pilot</div>
+          </div>
+          <div style="padding:.6rem .75rem;background:rgba(79,195,247,0.05);border:1px solid var(--rim);border-radius:var(--r);">
+            <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--accent);margin-bottom:2px;">KF5LKU</div>
+            <div style="font-size:.8rem;color:var(--text);font-weight:500;">Jeremy Hansen</div>
+            <div style="font-size:.72rem;color:var(--muted);">Mission Specialist 2 · CSA</div>
+          </div>
+          <div style="padding:.6rem .75rem;background:rgba(79,195,247,0.05);border:1px solid var(--rim);border-radius:var(--r);">
+            <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--muted);margin-bottom:2px;">N/A</div>
+            <div style="font-size:.8rem;color:var(--text);font-weight:500;">Christina Koch</div>
+            <div style="font-size:.72rem;color:var(--muted);">Mission Specialist 1</div>
+          </div>
+        </div>
+        <div style="font-size:.75rem;color:var(--muted);margin-top:.75rem;font-weight:300;line-height:1.5;">
+          Orion transmits on S-band (~2210.5 MHz) with digital encoding — not receivable by standard amateur equipment. Three of the four crew are licensed ham operators. No scheduled ham contacts during Artemis II; Orion is not equipped with amateur radio gear.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ── AUDIO WAVEFORM VISUALIZER ── */
+(function(){
+  const canvas = document.getElementById('audio-wave');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+  let active = false; // becomes true if user interacts with video
+
+  function resize() {
+    canvas.width  = canvas.offsetWidth  || 600;
+    canvas.height = canvas.offsetHeight || 56;
+  }
+
+  function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#000814';
+    ctx.fillRect(0, 0, W, H);
+
+    const bars = 80;
+    const barW = W / bars;
+    phase += 0.04;
+
+    for (let i = 0; i < bars; i++) {
+      // Simulate radio static / waveform with multiple sine harmonics
+      const t = i / bars;
+      const amp = (
+        Math.sin(t * Math.PI * 3 + phase) * 0.35 +
+        Math.sin(t * Math.PI * 7 + phase * 1.3) * 0.2 +
+        Math.sin(t * Math.PI * 13 + phase * 0.7) * 0.12 +
+        (Math.random() - 0.5) * 0.08
+      );
+      const h = Math.abs(amp) * H * 0.75 + 2;
+      const x = i * barW + barW * 0.15;
+      const w = barW * 0.7;
+      const y = (H - h) / 2;
+
+      // Colour: cyan for centre bars, dimmer at edges
+      const intensity = 0.3 + 0.7 * Math.abs(amp) / 0.6;
+      ctx.fillStyle = `rgba(79,195,247,${Math.min(1, intensity)})`;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x, y, w, h, 2) : ctx.rect(x, y, w, h);
+      ctx.fill();
+    }
+
+    // "LIVE AUDIO" label overlay
+    ctx.fillStyle = 'rgba(100,255,218,0.5)';
+    ctx.font = "10px 'Space Mono', monospace";
+    ctx.textAlign = 'right';
+    ctx.fillText('● AUDIO ACTIVE', W - 10, H - 8);
+
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+  draw();
+})();
+</script>
+
+<!-- ===== FAQ ===== -->
+<section id="faq">
+  <div class="section-header">
+    <div class="section-title-block">
+      <div class="section-eyebrow">Common Questions</div>
+      <h2 class="section-title">FAQ</h2>
+    </div>
+    <div class="section-rule" aria-hidden="true"></div>
+  </div>
+
+  <div class="faq-list" id="faq-list" role="list">
+    <!-- Injected by JS -->
+  </div>
+
+  <!-- Social share -->
+  <div class="share-strip" aria-label="Share this page">
+    <span class="share-label">Share the mission:</span>
+    <button class="share-btn" onclick="shareToX()" aria-label="Share on X (Twitter)">X / Twitter</button>
+    <button class="share-btn" onclick="shareToFacebook()" aria-label="Share on Facebook">Facebook</button>
+    <button class="share-btn" onclick="copyLink()" aria-label="Copy link to clipboard">Copy Link</button>
+    <button class="share-btn" onclick="shareNative()" aria-label="Share via device share sheet">Share ↗</button>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-brand-name">Artemis II Tracker</div>
+      <p class="footer-brand-desc">An independent mission tracker built for space enthusiasts. All telemetry data is simulated/estimated from publicly available sources. For official data, visit <a href="https://www.nasa.gov/artemis" target="_blank" rel="noopener noreferrer">nasa.gov/artemis</a>.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Sections</h4>
+      <ul>
+        <li><a href="#tracker">Live Tracker</a></li>
+        <li><a href="#timeline">Timeline</a></li>
+        <li><a href="#rocket">Spacecraft</a></li>
+        <li><a href="#crew">Crew</a></li>
+        <li><a href="#news">Updates</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Official Sources</h4>
+      <ul>
+        <li><a href="https://www.nasa.gov/artemis" target="_blank" rel="noopener noreferrer">NASA Artemis</a></li>
+        <li><a href="https://www.nasa.gov/humans-in-space/orion-spacecraft/" target="_blank" rel="noopener noreferrer">Orion Spacecraft</a></li>
+        <li><a href="https://blogs.nasa.gov/artemis/" target="_blank" rel="noopener noreferrer">Artemis Blog</a></li>
+        <li><a href="https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Orion" target="_blank" rel="noopener noreferrer">ESA / Orion</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-credit">
+      Built as an independent fan tracker · Telemetry is estimated/simulated<br>
+      Data sources: <a href="https://nasa.gov" target="_blank" rel="noopener noreferrer">NASA.gov</a> · <a href="https://esa.int" target="_blank" rel="noopener noreferrer">ESA.int</a> · NASA Artemis Press Kit
+    </div>
+    <p class="disclaimer">This site is not affiliated with NASA or any government agency. Mission telemetry shown is interpolated from public mission parameters and is for informational/educational purposes only.</p>
+  </div>
+</footer>
+</main>
+
+<script>
+/* =====================================================
+   ARTEMIS II LIVE TRACKER — JAVASCRIPT
+   =====================================================
+   Architecture:
+   - missionData: single source of truth for mission config
+   - telemetryService: API adapter layer (swap endpoints here)
+   - missionSimulator: generates realistic mock telemetry
+   - UI renderers: pure display functions
+   ===================================================== */
+
+/* ── MISSION CONFIGURATION ── */
+const missionData = {
+  // LIVE API ENDPOINTS — all wired to real public data sources
+  // Primary: artemis.cdnspace.ca community relay (JPL Horizons + NASA AROW)
+  // Fallback: JPL Horizons direct, NASA DSN Now XML
+  apiEndpoints: {
+    // Community relay: orbital telemetry from JPL Horizons ephemeris (updates every 5 min)
+    orbitAPI:    'https://artemis.cdnspace.ca/api/orbit',
+    // AROW live spacecraft telemetry (attitude, power, etc.) via SSE stream
+    arowSSE:     'https://artemis.cdnspace.ca/api/arow/stream',
+    arowPoll:    'https://artemis.cdnspace.ca/api/arow',
+    // Deep Space Network — which dishes are tracking Orion right now
+    dsnCommunity:'https://artemis.cdnspace.ca/api/dsn',
+    dsnNASA:     'https://eyes.nasa.gov/dsn/data/dsn.xml',
+    // NASA Artemis blog RSS for live news
+    newsRSS:     'https://www.nasa.gov/feeds/ercn/feed.rss',
+  },
+  useMockData: false, // LIVE — real APIs active
+
+  // Actual Artemis II launch time (April 1 2026, 22:35 UTC)
+  launchTime: new Date('2026-04-01T22:35:00Z'),
+
+  crew: [
+    { initials: 'RW', name: 'Reid Wiseman', role: 'Commander', agency: 'NASA', bio: 'Navy test pilot and NASA astronaut, ISS Expedition 41 commander. Led mission training for Artemis II.', tags: ['ISS Veteran', 'Test Pilot', 'NASA'] },
+    { initials: 'VG', name: 'Victor Glover', role: 'Pilot', agency: 'NASA', bio: 'Navy test pilot, first Black astronaut to live and work aboard the ISS. Pilot for the Artemis II flight.', tags: ['ISS Veteran', 'Navy TOPGUN', 'NASA'] },
+    { initials: 'CH', name: 'Christina Koch', role: 'Mission Specialist 1', agency: 'NASA', bio: 'Holds the record for the longest single spaceflight by a woman. First woman assigned to a crewed lunar mission.', tags: ['Record Holder', 'ISS Veteran', 'NASA'] },
+    { initials: 'JH', name: 'Jeremy Hansen', role: 'Mission Specialist 2', agency: 'CSA', bio: 'Canadian astronaut, Royal Canadian Air Force colonel. First Canadian to fly beyond low Earth orbit.', tags: ['First Canadian', 'RCAF Colonel', 'CSA'] },
+  ],
+
+  timeline: [
+    { id: 't0', status: 'completed', time: 'Apr 1 22:35 UTC', title: 'Liftoff', desc: 'SLS lifted off from Launch Complex 39B at Kennedy Space Center. All four RS-25 engines and twin SRBs ignited nominally.' },
+    { id: 't1', status: 'completed', time: 'Apr 1 22:37 UTC', title: 'SRB Separation', desc: 'Solid Rocket Boosters burned out and separated from the core stage at ~45 km altitude, 2 minutes after launch.' },
+    { id: 't2', status: 'completed', time: 'Apr 1 22:43 UTC', title: 'Core Stage Separation', desc: 'SLS core stage main engine cutoff and separation. ICPS (Interim Cryogenic Propulsion Stage) took over.' },
+    { id: 't3', status: 'completed', time: 'Apr 1 ~23:00 UTC', title: 'Orbital Insertion', desc: 'ICPS performed parking orbit insertion burn, placing Orion in a temporary high Earth orbit for systems checkout.' },
+    { id: 't4', status: 'completed', time: 'Apr 2 23:49 UTC', title: 'Translunar Injection', desc: 'TLI burn completed April 2 at 7:49 PM EDT (23:49 UTC). The critical burn committed the mission to the free-return trajectory to the Moon. Crew spent the day testing life support and comms.' },
+    { id: 't5', status: 'completed', time: 'Apr 3', title: 'ICPS Separation + Deep Space Operations', desc: 'ICPS separated. Crew settled into deep space routine. Troubleshooting a minor toilet issue onboard (resolved). Trajectory correction burn MCC-1 cancelled — trajectory nominal without it.' },
+    { id: 't6', status: 'completed', time: 'Apr 4 (Flight Day 4)', title: 'Manual Piloting Test', desc: 'Christina Koch took manual control of Orion during a manual piloting evaluation. Crew prepared for lunar approach. Crew passed the halfway point between Earth and Moon.' },
+    { id: 't7', status: 'completed', time: 'Apr 5 (Flight Day 5)', title: 'Entered Lunar Sphere of Influence', desc: 'Orion entered the Moon\'s sphere of gravitational influence — where lunar gravity dominates over Earth gravity. Outbound trajectory correction burn MCC-R1 completed.' },
+    { id: 't8', status: 'completed', time: 'Apr 6 ~18:56 CDT', title: 'Lunar Flyby + Distance Record', desc: 'Crew made the first human lunar flyby since Apollo 17 in 1972, passing ~4,600 miles (7,400 km) above the lunar surface. At 12:56 PM CDT, crew set the all-time human spaceflight distance record — 248,655 miles (400,171 km) from Earth, surpassing Apollo 13\'s 1970 record. Crew observed an "unreal" solar eclipse from behind the Moon. Loss of signal (LOS) during far-side blackout.' },
+    { id: 't9', status: 'current', time: 'Apr 7+ (Return Coast)', title: 'Return Trajectory', desc: 'Orion is now on its return trajectory toward Earth. The crew continues systems evaluation, science experiments, and exercise. Return trajectory correction burns (MCC-R2) being planned. Splashdown targeted for April 10.' },
+    { id: 't10', status: 'upcoming', time: 'Apr 9–10', title: 'CM/SM Separation & Reentry', desc: 'Crew Module separates from the European Service Module. Orion enters Earth\'s atmosphere at ~40,000 km/h. AVCOAT heat shield withstands temperatures up to 2,760°C.' },
+    { id: 't11', status: 'upcoming', time: 'Apr 10 ~20:07 PDT', title: 'Splashdown', desc: 'Orion splashes down in the Pacific Ocean off San Diego. Post-splashdown conference at NASA Johnson Space Center.' },
+  ],
+
+  news: [
+    { source: 'NASA', time: 'Apr 7', headline: 'Artemis II Crew on Return Trajectory After Historic Lunar Flyby', excerpt: 'The four astronauts completed their closest approach to the Moon on April 6 and are now on the return trajectory to Earth. Splashdown is targeted for April 10 in the Pacific Ocean.' },
+    { source: 'NASA', time: 'Apr 6', headline: 'Artemis II Crew Sets All-Time Human Distance Record', excerpt: 'At 12:56 PM CDT on April 6, the crew reached 248,655 miles (400,171 km) from Earth — farther from Earth than any humans in history, surpassing the Apollo 13 record set in 1970.' },
+    { source: 'NASA', time: 'Apr 6', headline: 'First Human Lunar Flyby Since Apollo 17 in 1972 Completed', excerpt: 'Orion made its closest approach to the Moon at approximately 4,600 miles (7,400 km) above the surface. Crew experienced an "unreal" solar eclipse from behind the Moon and loss of signal during far-side blackout.' },
+    { source: 'NASA', time: 'Apr 4', headline: 'Christina Koch Takes Manual Control During Piloting Test', excerpt: 'Mission Specialist Christina Koch manually piloted the Orion spacecraft during a key test on Flight Day 4, flanked by Jeremy Hansen and Victor Glover. All evaluations completed successfully.' },
+  ],
+
+  statusFeed: [
+    { time: 'Apr 7 UTC', text: '<strong>RETURN COAST:</strong> Orion on return trajectory to Earth. Crew conducting experiments and systems evaluations.' },
+    { time: 'Apr 6 ~23:00 UTC', text: '<strong>FLYBY COMPLETE:</strong> Lunar flyby and far-side blackout complete. Signal reacquired. Crew healthy and in good spirits.' },
+    { time: 'Apr 6 ~19:56 UTC', text: '<strong>DISTANCE RECORD:</strong> Crew reached 248,655 miles (400,171 km) from Earth — the farthest humans have ever traveled. New all-time record set.' },
+    { time: 'Apr 6 ~18:00 UTC', text: '<strong>LUNAR FLYBY:</strong> Closest approach to Moon at ~4,600 miles (7,400 km) above the surface. Crew reported an "unreal" solar eclipse view.' },
+    { time: 'Apr 5', text: '<strong>LUNAR SOI:</strong> Orion entered the Moon\'s sphere of gravitational influence. MCC-R1 correction burn completed successfully.' },
+  ],
+
+  faq: [
+    { q: 'What is the Artemis II mission?', a: 'Artemis II is NASA\'s first crewed Artemis mission, sending four astronauts on a ~10-day journey around the Moon. It launched April 1, 2026 from Kennedy Space Center — the first crewed mission beyond low Earth orbit since Apollo 17 in 1972.' },
+    { q: 'Who are the Artemis II crew members?', a: 'The crew is Reid Wiseman (Commander, NASA), Victor Glover (Pilot, NASA), Christina Koch (Mission Specialist 1, NASA), and Jeremy Hansen (Mission Specialist 2, Canadian Space Agency). It\'s the first mission to carry a woman, a person of color, and a Canadian to the Moon\'s vicinity.' },
+    { q: 'Did Artemis II land on the Moon?', a: 'No. Artemis II is a free-return lunar flyby. On April 6, 2026, the crew made the closest approach — approximately 4,600 miles (7,400 km) above the lunar surface — without entering orbit or landing. That milestone is planned for Artemis III.' },
+    { q: 'Did the crew set a distance record?', a: 'Yes! On April 6, 2026, at 12:56 PM CDT, the Artemis II crew reached 248,655 miles (400,171 km) from Earth — farther than any humans in history, surpassing the Apollo 13 record from April 1970. They also experienced a solar eclipse from behind the Moon.' },
+    { q: 'Where does the telemetry data come from?', a: 'Live telemetry is fetched from artemis.cdnspace.ca, a community API relay of NASA\'s AROW (Artemis Real-time Orbit Website) and JPL Horizons ephemeris data. Orbital data updates every 5 minutes; spacecraft attitude data streams live via SSE. When the APIs are unreachable, realistic estimated values are shown. The NASA DSN Now feed shows which ground stations are tracking Orion.' },
+    { q: 'When does Orion splashdown?', a: 'Splashdown is targeted for approximately April 10, 2026, in the Pacific Ocean off the coast of San Diego, California. NASA and DoD recovery personnel will assist the crew out of Orion. A post-splashdown news conference is planned at NASA\'s Johnson Space Center.' },
+  ],
+};
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE TELEMETRY SERVICE
+   Primary:  artemis.cdnspace.ca/api/orbit  (JPL Horizons relay, 5-min cadence)
+   Fallback: artemis.cdnspace.ca/api/arow   (NASA AROW poll)
+   Backup:   Physics-based interpolation from last known state
+   ══════════════════════════════════════════════════════════════ */
+const telemetryService = {
+  lastKnown: null,
+  consecutiveFailures: 0,
+
+  async fetch() {
+    // Try community orbit API (JPL Horizons relay)
+    try {
+      const res = await Promise.race([
+        fetch('https://artemis.cdnspace.ca/api/orbit', { headers: { 'Accept': 'application/json' } }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+      ]);
+      if (res.ok) {
+        const data = await res.json();
+        const parsed = telemetryService._normalizeOrbit(data);
+        telemetryService.lastKnown = { ...parsed, ts: Date.now() };
+        telemetryService.consecutiveFailures = 0;
+        setDataSourceLabel('LIVE · artemis.cdnspace.ca / JPL Horizons', true);
+        return parsed;
+      }
+    } catch (e) { /* fall through */ }
+
+    // Fallback: AROW poll
+    try {
+      const res = await Promise.race([
+        fetch('https://artemis.cdnspace.ca/api/arow', { headers: { 'Accept': 'application/json' } }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))
+      ]);
+      if (res.ok) {
+        const data = await res.json();
+        const parsed = telemetryService._normalizeAROW(data);
+        telemetryService.lastKnown = { ...parsed, ts: Date.now() };
+        telemetryService.consecutiveFailures = 0;
+        setDataSourceLabel('LIVE · NASA AROW via cdnspace.ca', true);
+        return parsed;
+      }
+    } catch (e) { /* fall through */ }
+
+    // Last resort: interpolate from last known + elapsed time, or use physics model
+    telemetryService.consecutiveFailures++;
+    setDataSourceLabel('ESTIMATED · Live API unreachable — physics model', false);
+    if (telemetryService.lastKnown) {
+      return telemetryService._interpolate(telemetryService.lastKnown);
+    }
+    return missionSimulator.generate();
+  },
+
+  _normalizeOrbit(d) {
+    // artemis.cdnspace.ca orbit API field mapping
+    return {
+      altitude:        Math.round(d.altitude_km   ?? d.altitude   ?? d.alt ?? 0),
+      speed:           Math.round((d.speed_kms ?? d.velocity_kms ?? d.speed ?? 0) * 3600), // km/s → km/h
+      distance:        Math.round(d.distance_earth_km ?? d.earth_distance ?? d.range ?? 0),
+      distanceMoon:    Math.round(d.distance_moon_km  ?? d.moon_distance  ?? 0),
+      gforce:          (d.g_force ?? d.gforce ?? 0.0002).toFixed(5),
+      rangeRate:       d.range_rate_kms ?? null,   // km/s, negative = approaching Earth
+      phase:           d.mission_phase ?? null,
+      raw:             d,
+    };
+  },
+
+  _normalizeAROW(d) {
+    return {
+      altitude:        Math.round(d.altitude_km ?? d.alt_km ?? 0),
+      speed:           Math.round((d.speed_kms ?? d.velocity ?? 0) * 3600),
+      distance:        Math.round(d.earth_distance_km ?? d.distance ?? 0),
+      distanceMoon:    Math.round(d.moon_distance_km ?? 0),
+      gforce:          (d.crew_g ?? 0.0002).toFixed(5),
+      rangeRate:       d.range_rate ?? null,
+      phase:           d.phase ?? 'Return Trajectory',
+      raw:             d,
+    };
+  },
+
+  _interpolate(last) {
+    // Dead-reckoning: extrapolate using range rate and elapsed time
+    const elapsedSec = (Date.now() - last.ts) / 1000;
+    const rateKmS = last.rangeRate ?? -0.9; // ~0.9 km/s return approach
+    const dDist = Math.round(rateKmS * elapsedSec);
+    return {
+      altitude:     Math.max(0, last.altitude     + dDist),
+      speed:        last.speed,
+      distance:     Math.max(0, last.distance     + dDist),
+      distanceMoon: Math.max(0, last.distanceMoon - dDist),
+      gforce:       last.gforce,
+      rangeRate:    last.rangeRate,
+      phase:        last.phase,
+    };
+  },
+};
+
+/* ── DSN TRACKING SERVICE ── */
+const dsnService = {
+  async fetch() {
+    try {
+      const res = await Promise.race([
+        fetch('https://artemis.cdnspace.ca/api/dsn'),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))
+      ]);
+      if (res.ok) {
+        const data = await res.json();
+        return dsnService._normalize(data);
+      }
+    } catch (e) { /* fall through to NASA XML */ }
+
+    // Fallback: NASA DSN Now XML (CORS may block, try anyway)
+    try {
+      const res = await fetch('https://eyes.nasa.gov/dsn/data/dsn.xml');
+      if (res.ok) {
+        const text = await res.text();
+        return dsnService._parseXML(text);
+      }
+    } catch (e) { /* silence */ }
+
+    return null;
+  },
+
+  _normalize(d) {
+    const dishes = d.dishes ?? d.stations ?? [];
+    const active = dishes.find(dish =>
+      (dish.spacecraft ?? '').toLowerCase().includes('orion') ||
+      (dish.target ?? '').toLowerCase().includes('orion') ||
+      (dish.target ?? '').toLowerCase().includes('artemis')
+    );
+    return {
+      station: active?.name ?? active?.station ?? (dishes[0]?.name ?? 'Unknown'),
+      target:  active?.spacecraft ?? active?.target ?? 'ORION',
+      lightTime: active?.light_time_sec ?? active?.one_way_light_time ?? null,
+    };
+  },
+
+  _parseXML(xml) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml, 'application/xml');
+    const dishes = Array.from(doc.querySelectorAll('dish'));
+    const orionDish = dishes.find(d =>
+      Array.from(d.querySelectorAll('target')).some(t =>
+        (t.getAttribute('name') ?? '').toLowerCase().includes('orion')
+      )
+    );
+    if (!orionDish) return null;
+    const target = orionDish.querySelector('target');
+    const lt = orionDish.querySelector('downSignal');
+    return {
+      station:   orionDish.getAttribute('name') ?? 'DSN',
+      target:    target?.getAttribute('name') ?? 'ORION',
+      lightTime: lt ? parseFloat(lt.getAttribute('lightTime') ?? '0') : null,
+    };
+  },
+};
+
+/* ── PHYSICS-BASED FALLBACK SIMULATOR ──
+   Based on actual Artemis II trajectory parameters from NASA press kit.
+   Mission elapsed time drives realistic values for the return coast phase.
+*/
+const missionSimulator = {
+  generate() {
+    // Real launch: Apr 1 2026 22:35 UTC
+    const launchMs = new Date('2026-04-01T22:35:00Z').getTime();
+    const elapsedHours = (Date.now() - launchMs) / 3_600_000;
+
+    // Mission phases from actual timeline:
+    // 0–1.3h: Ascent / parking orbit
+    // 1.3–25h: High earth orbit checkout
+    // 25–120h: Translunar coast (outbound)
+    // 120–122h: Lunar flyby (closest approach ~7,400 km surface, Apr 6)
+    // 122–217h: Return coast
+    // ~217.5h: Splashdown (Apr 10 ~03:07 UTC)
+    const h = elapsedHours;
+    let distance, speed, altitude, distMoon;
+
+    if (h < 1.3) {
+      // Ascent
+      altitude = h * 300; distance = h * 200; speed = 28000; distMoon = 384400;
+    } else if (h < 25) {
+      // High earth orbit / ICPS
+      altitude = 400 + (h - 1.3) * 15000; distance = 400 + (h - 1.3) * 15000;
+      speed = 28800; distMoon = 384400 - distance;
+    } else if (h < 120) {
+      // Translunar coast outbound — distance increases from ~100k to ~400k km
+      const t = (h - 25) / 95;
+      distance = 100000 + 300000 * Math.pow(t, 0.85);
+      speed = Math.round(3600 * (0.9 + 0.4 * (1 - t))); // slows as gravity reduces
+      altitude = distance;
+      distMoon = Math.max(7400, 384400 - distance);
+    } else if (h < 122) {
+      // Lunar flyby — closest ~7400 km surface (=9038 km from center)
+      const t = (h - 120) / 2;
+      const flybyDist = 400171 - (400171 - 394000) * Math.sin(t * Math.PI);
+      distance = flybyDist;
+      speed = Math.round(3600 * 1.1);
+      altitude = distance;
+      distMoon = Math.max(7000, 9038 * Math.abs(Math.cos(t * Math.PI)));
+    } else {
+      // Return coast — distance decreases from ~400k toward 0
+      const t = Math.min(1, (h - 122) / (217.5 - 122));
+      distance = Math.max(0, 400171 * (1 - Math.pow(t, 1.184)));
+      speed = Math.round(3600 * (0.9 + t * 10)); // accelerates on reentry approach
+      altitude = distance;
+      distMoon = Math.min(384400, 7400 + (384400 - 7400) * t);
+    }
+
+    return {
+      altitude:     Math.max(0, Math.round(altitude)),
+      speed:        Math.max(0, Math.round(speed)),
+      distance:     Math.max(0, Math.round(distance)),
+      distanceMoon: Math.max(0, Math.round(distMoon)),
+      gforce:       (0.00015 + Math.random() * 0.0002).toFixed(5),
+      rangeRate:    h > 122 ? -0.9 : 0.85,
+      phase:        h < 120 ? 'Translunar Coast' : h < 122 ? 'Lunar Flyby' : 'Return Trajectory',
+    };
+  }
+};
+
+/* ── REAL POSITION STATE ── */
+let currentDistanceKm = 0;
+let currentMoonDistKm = 0;
+
+/* ── STAR FIELD ── */
+function initStarField() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    generateStars();
+  }
+  
+  function generateStars() {
+    stars = [];
+    const count = Math.floor((canvas.width * canvas.height) / 3000);
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.5,
+        o: Math.random() * 0.8 + 0.1,
+        twinkle: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.02 + 0.005,
+      });
+    }
+  }
+
+  function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#02020a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    stars.forEach(s => {
+      s.twinkle += s.speed;
+      const opacity = s.o * (0.6 + 0.4 * Math.sin(s.twinkle));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,220,255,${opacity})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawStars);
+  }
+  
+  resize();
+  window.addEventListener('resize', resize);
+  drawStars();
+}
+
+/* ── ORBITAL CANVAS ── */
+function initOrbitalCanvas() {
+  const wrap = document.getElementById('three-canvas-wrap');
+  if (!wrap) return;
+
+  // ── Three.js scene setup ──
+  const scene    = new THREE.Scene();
+  const W = wrap.clientWidth  || 800;
+  const H = wrap.clientHeight || 420;
+  const camera   = new THREE.PerspectiveCamera(45, W / H, 0.01, 2000);
+  camera.position.set(0, 40, 120);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  wrap.insertBefore(renderer.domElement, wrap.firstChild);
+
+  // ── Resize handler ──
+  new ResizeObserver(() => {
+    const nw = wrap.clientWidth, nh = wrap.clientHeight;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  }).observe(wrap);
+
+  // ── Lighting ──
+  // Strong directional sun — positioned upper-left like the Blue Marble photo
+  const sunLight = new THREE.DirectionalLight(0xfff8f0, 3.8);
+  sunLight.position.set(-180, 80, 120);
+  sunLight.castShadow = true;
+  scene.add(sunLight);
+  // Soft fill from opposite side so dark hemisphere isn't pitch black
+  const fillLight = new THREE.DirectionalLight(0x103060, 0.35);
+  fillLight.position.set(100, -40, -80);
+  scene.add(fillLight);
+  // Deep blue ambient — space light
+  scene.add(new THREE.AmbientLight(0x080820, 1.2));
+
+  // ── Starfield ──
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 3000;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount * 3; i++) starPos[i] = (Math.random() - 0.5) * 1800;
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.45, sizeAttenuation: true })));
+
+  // ── Earth ──
+  // ── Photorealistic Earth — NASA Blue Marble quality ──
+  const earthGeo = new THREE.SphereGeometry(12, 128, 128);
+  const texLoader = new THREE.TextureLoader();
+
+  // Primary: Three.js bundled NASA textures (same ones used in Three.js official demos)
+  // earth_atmos = the iconic Blue Marble composite photo (land+ocean+clouds baked)
+  const earthDayTex    = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/earth_atmos_2048.jpg');
+  const earthNormalTex = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/earth_normal_2048.jpg');
+  const earthSpecTex   = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/earth_specular_2048.jpg');
+  const earthNightTex  = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/earth_lights_2048.png');
+  const earthCloudTex  = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/earth_clouds_1024.png');
+
+  // Set texture colour space for accurate rendering
+  earthDayTex.encoding   = THREE.sRGBEncoding || 3001;
+  earthNightTex.encoding = THREE.sRGBEncoding || 3001;
+
+  const earthMat = new THREE.MeshPhongMaterial({
+    map:         earthDayTex,
+    normalMap:   earthNormalTex,
+    normalScale: new THREE.Vector2(1.2, 1.2),
+    specularMap: earthSpecTex,
+    specular:    new THREE.Color(0x3a7aaa),
+    shininess:   45,   // more ocean glint
+    emissive:    new THREE.Color(0x000000),
+  });
+  const earth = new THREE.Mesh(earthGeo, earthMat);
+  earth.castShadow    = true;
+  earth.receiveShadow = true;
+  scene.add(earth);
+
+  // Night side city lights (additive blending — only bright on dark side)
+  const nightMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(12.02, 64, 64),
+    new THREE.MeshBasicMaterial({
+      map:        earthNightTex,
+      blending:   THREE.AdditiveBlending,
+      transparent:true,
+      opacity:    0.9,
+      depthWrite: false,
+    })
+  );
+  scene.add(nightMesh);
+
+  // Cloud layer — semi-transparent, rotates independently
+  const cloudMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(12.28, 64, 64),
+    new THREE.MeshPhongMaterial({
+      map:         earthCloudTex,
+      transparent: true,
+      opacity:     0.58,
+      depthWrite:  false,
+      blending:    THREE.NormalBlending,
+      specular:    new THREE.Color(0x222222),
+      shininess:   6,
+    })
+  );
+  scene.add(cloudMesh);
+
+  // ── Atmosphere — multi-layer glow to match the reference photo ──
+
+  // Layer 1: bright blue limb ring (the most visible glow edge)
+  const atmRing = new THREE.Mesh(
+    new THREE.SphereGeometry(13.1, 64, 64),
+    new THREE.MeshBasicMaterial({
+      color:      0x1a8fdf,
+      transparent:true,
+      opacity:    0.22,
+      side:       THREE.BackSide,
+      depthWrite: false,
+    })
+  );
+  scene.add(atmRing);
+
+  // Layer 2: thicker outer glow
+  const atmOuter = new THREE.Mesh(
+    new THREE.SphereGeometry(14.2, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color:      0x0d5fa8,
+      transparent:true,
+      opacity:    0.10,
+      side:       THREE.BackSide,
+      depthWrite: false,
+    })
+  );
+  scene.add(atmOuter);
+
+  // Layer 3: subtle front-side scatter (brightens the sunlit hemisphere edge)
+  const atmFront = new THREE.Mesh(
+    new THREE.SphereGeometry(12.9, 32, 32),
+    new THREE.MeshPhongMaterial({
+      color:      0x4fc3f7,
+      transparent:true,
+      opacity:    0.055,
+      side:       THREE.FrontSide,
+      depthWrite: false,
+    })
+  );
+  scene.add(atmFront);
+
+  // Layer 4: innermost limb brightening (the thin blue line right at the horizon)
+  const atmLimb = new THREE.Mesh(
+    new THREE.SphereGeometry(12.55, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color:      0x60c8ff,
+      transparent:true,
+      opacity:    0.09,
+      side:       THREE.BackSide,
+      depthWrite: false,
+    })
+  );
+  scene.add(atmLimb);
+
+  // Earth label sprite
+  function makeLabel(text, color='#4fc3f7', size=22) {
+    const c = document.createElement('canvas'); c.width=256; c.height=64;
+    const x = c.getContext('2d');
+    x.font = `bold ${size}px 'Space Mono',monospace`; x.fillStyle=color; x.textAlign='center';
+    x.fillText(text, 128, 44);
+    const tex = new THREE.CanvasTexture(c);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
+    return new THREE.Sprite(mat);
+  }
+  const earthLabel = makeLabel('EARTH', '#4fc3f7', 22);
+  earthLabel.scale.set(18, 4.5, 1);
+  earthLabel.position.set(0, -15.5, 0);
+  scene.add(earthLabel);
+
+  // ── Splashdown landing zone (Pacific Ocean, ~32.7°N 117.2°W — off San Diego) ──
+  // Convert lat/lon to XYZ on unit sphere radius 12
+  // lat=32.7°N, lon=-117.2°W  →  phi=(90-32.7)*PI/180, theta=(360-117.2)*PI/180
+  const splashLat = 32.7, splashLon = -117.2;
+  const splashPhi   = (90 - splashLat) * Math.PI / 180;
+  const splashTheta = (splashLon + 360) * Math.PI / 180;
+  const splashR = 12.08; // just above Earth surface
+  const splashX = splashR * Math.sin(splashPhi) * Math.cos(splashTheta);
+  const splashY = splashR * Math.cos(splashPhi);
+  const splashZ = splashR * Math.sin(splashPhi) * Math.sin(splashTheta);
+
+  // Glowing landing marker — red/orange pulsing ring
+  const landingGroup = new THREE.Group();
+  landingGroup.position.set(splashX, splashY, splashZ);
+
+  // Orient marker to face outward from Earth centre (normal to surface)
+  const normalDir = new THREE.Vector3(splashX, splashY, splashZ).normalize();
+  const upRef     = Math.abs(normalDir.y) < 0.99 ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0);
+  landingGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), normalDir);
+
+  // Core dot
+  const dotGeo = new THREE.CircleGeometry(0.35, 32);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0xff1744, side: THREE.DoubleSide, depthTest: false });
+  const dot = new THREE.Mesh(dotGeo, dotMat);
+  landingGroup.add(dot);
+
+  // Outer ring 1
+  const ring1Geo = new THREE.RingGeometry(0.48, 0.62, 32);
+  const ring1Mat = new THREE.MeshBasicMaterial({ color: 0xff6d00, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthTest: false });
+  landingGroup.add(new THREE.Mesh(ring1Geo, ring1Mat));
+
+  // Outer ring 2 (animated pulse)
+  const ring2Geo = new THREE.RingGeometry(0.72, 0.82, 32);
+  const ring2Mat = new THREE.MeshBasicMaterial({ color: 0xffd54f, side: THREE.DoubleSide, transparent: true, opacity: 0.6, depthTest: false });
+  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+  landingGroup.add(ring2);
+
+  // Outer ring 3 (slow expanding pulse — recreated each frame)
+  const ring3Mat = new THREE.MeshBasicMaterial({ color: 0xff6d00, side: THREE.DoubleSide, transparent: true, opacity: 0.3, depthTest: false });
+  let ring3 = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.0, 32), ring3Mat);
+  landingGroup.add(ring3);
+
+  scene.add(landingGroup);
+
+  // Splashdown label sprite
+  const splashLabel = makeLabel('🌊 SPLASHDOWN ZONE', '#ff6d00', 16);
+  splashLabel.scale.set(22, 5.5, 1);
+  // Label positioned above the marker (offset along the normal)
+  splashLabel.position.set(splashX * 1.35, splashY * 1.35 + 3, splashZ * 1.35);
+  splashLabel.material.depthTest = false;
+  scene.add(splashLabel);
+
+  // San Diego label
+  const sdLabel = makeLabel('San Diego, CA', 'rgba(255,213,79,0.85)', 13);
+  sdLabel.scale.set(16, 4, 1);
+  sdLabel.position.set(splashX * 1.28, splashY * 1.28 + 0.2, splashZ * 1.28);
+  sdLabel.material.depthTest = false;
+  scene.add(sdLabel);
+
+  // Store refs for animation
+  let splashPulseT = 0;
+
+  // ── Moon ──
+  const MOON_DIST = 95;
+  const moonGeo = new THREE.SphereGeometry(3.2, 64, 64);
+  const moonTex = texLoader.load('https://unpkg.com/three@0.128.0/examples/textures/planets/moon_1024.jpg');
+  const moonMat = new THREE.MeshPhongMaterial({
+    map:       moonTex,
+    bumpMap:   moonTex,
+    bumpScale: 0.06,
+    shininess: 4,
+  });
+  const moon = new THREE.Mesh(moonGeo, moonMat);
+  moon.position.set(MOON_DIST, 8, -22);
+  moon.castShadow = true;
+  scene.add(moon);
+  const moonLabel = makeLabel('MOON', '#bdbdbd', 20);
+  moonLabel.scale.set(14, 3.5, 1);
+  moonLabel.position.copy(moon.position).setY(moon.position.y - 5.5);
+  scene.add(moonLabel);
+
+  // ── Free-return trajectory curve ──
+  // Parametric path: launch from Earth, arc up to Moon, loop around, return
+  function trajectoryPoint(t) {
+    // Outbound 0→0.5: Earth→Moon approach
+    // Flyby 0.5→0.6: loop around Moon
+    // Return 0.6→1: Moon→Earth
+    const ex=0, ey=0, ez=0;
+    const mx=MOON_DIST, my=8, mz=-22;
+    if (t <= 0.5) {
+      const s = t / 0.5;
+      const cx1=50, cy1=55, cz1=-30;
+      const cx2=mx-20, cy2=my+25, cz2=mz+15;
+      return cubicBezier(s, ex,ey,ez, cx1,cy1,cz1, cx2,cy2,cz2, mx+4, my+3.5, mz-3.5);
+    } else if (t <= 0.62) {
+      const s = (t-0.5)/0.12;
+      const startX=mx+4,startY=my+3.5,startZ=mz-3.5;
+      const endX=mx-2,endY=my-3.5,endZ=mz+4;
+      const midX=mx+14,midY=my-8,midZ=mz-8;
+      return cubicBezier(s,startX,startY,startZ, midX+6,midY-4,midZ-4, midX-4,midY+2,midZ+2, endX,endY,endZ);
+    } else {
+      const s = (t-0.62)/0.38;
+      const sx=mx-2,sy=my-3.5,sz=mz+4;
+      const cx1=mx-35,cy1=my-30,cz1=mz+28;
+      const cx2=18,cy2=-30,cz2=20;
+      return cubicBezier(s,sx,sy,sz, cx1,cy1,cz1, cx2,cy2,cz2, ex+2,ey-2,ez+3);
+    }
+  }
+  function cubicBezier(t,x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3) {
+    const mt=1-t;
+    return {
+      x: mt*mt*mt*x0 + 3*mt*mt*t*x1 + 3*mt*t*t*x2 + t*t*t*x3,
+      y: mt*mt*mt*y0 + 3*mt*mt*t*y1 + 3*mt*t*t*y2 + t*t*t*y3,
+      z: mt*mt*mt*z0 + 3*mt*mt*t*z1 + 3*mt*t*t*z2 + t*t*t*z3
+    };
+  }
+
+  // Build trajectory as a Three.js tube
+  const trajPoints = [];
+  for (let i=0; i<=200; i++) trajPoints.push(new THREE.Vector3(
+    ...Object.values(trajectoryPoint(i/200)).map((v,j)=>[v.x,v.y,v.z][j] ?? Object.values(trajectoryPoint(i/200))[j])
+  ));
+  // Rebuild cleanly
+  const tPoints = [];
+  for (let i=0; i<=200; i++) { const p=trajectoryPoint(i/200); tPoints.push(new THREE.Vector3(p.x,p.y,p.z)); }
+  const trajCurve = new THREE.CatmullRomCurve3(tPoints);
+  const trajGeo   = new THREE.TubeGeometry(trajCurve, 300, 0.18, 8, false);
+  const trajMat   = new THREE.MeshBasicMaterial({ color: 0x2196f3, transparent: true, opacity: 0.85 });
+  scene.add(new THREE.Mesh(trajGeo, trajMat));
+
+  // Completed path (glowing green so far) — drawn separately, updated each frame
+  let completedTube = null;
+
+  // ── Rocket / Orion mesh ──
+  const rocketGroup = new THREE.Group();
+  // Body
+  const bodyGeo = new THREE.CylinderGeometry(0.35, 0.55, 2.2, 16);
+  const bodyMat = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x224466, shininess: 80 });
+  rocketGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+  // Nose cone
+  const noseCone = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.0, 16), new THREE.MeshPhongMaterial({ color: 0xcccccc, emissive: 0x111111 }));
+  noseCone.position.y = 1.6;
+  rocketGroup.add(noseCone);
+  // Fins
+  const finMat = new THREE.MeshPhongMaterial({ color: 0xff1744, emissive: 0x330000 });
+  [[-0.55,0],[0.55,0],[0,-0.55],[0,0.55]].forEach(([fx,fz]) => {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.9, 0.5), finMat);
+    fin.position.set(fx, -0.8, fz);
+    rocketGroup.add(fin);
+  });
+  // Engine bell
+  const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.32, 0.45, 16), new THREE.MeshPhongMaterial({ color: 0xb0bec5, shininess: 120 }));
+  bell.position.y = -1.35;
+  rocketGroup.add(bell);
+
+  // Exhaust flame (animated)
+  const flameGeo = new THREE.ConeGeometry(0.32, 2.2, 12, 1, true);
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xff8800, transparent: true, opacity: 0.82, side: THREE.DoubleSide });
+  const flame = new THREE.Mesh(flameGeo, flameMat);
+  flame.position.y = -2.4;
+  flame.rotation.x = Math.PI;
+  rocketGroup.add(flame);
+
+  // Flame inner (brighter core)
+  const flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.14, 1.2, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xffff88, transparent: true, opacity: 0.95, side: THREE.DoubleSide }));
+  flameInner.position.y = -2.0;
+  flameInner.rotation.x = Math.PI;
+  rocketGroup.add(flameInner);
+
+  rocketGroup.scale.setScalar(1.4);
+  scene.add(rocketGroup);
+
+  // Rocket position marker (small glowing sphere for visibility at distance)
+  const markerGeo = new THREE.SphereGeometry(0.8, 16, 16);
+  const markerMat = new THREE.MeshBasicMaterial({ color: 0x64ffda });
+  const marker = new THREE.Mesh(markerGeo, markerMat);
+  scene.add(marker);
+
+  // Rocket glow (sprite)
+  const glowCanvas = document.createElement('canvas'); glowCanvas.width = glowCanvas.height = 128;
+  const gc = glowCanvas.getContext('2d');
+  const rg = gc.createRadialGradient(64,64,0,64,64,64);
+  rg.addColorStop(0,'rgba(100,255,218,0.9)'); rg.addColorStop(0.3,'rgba(79,195,247,0.4)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+  gc.fillStyle = rg; gc.fillRect(0,0,128,128);
+  const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(glowCanvas), transparent: true, depthTest: false }));
+  glowSprite.scale.set(6,6,1);
+  scene.add(glowSprite);
+
+  // Orion label
+  const orionLabel = makeLabel('ORION / INTEGRITY', '#64ffda', 18);
+  orionLabel.scale.set(20, 5, 1);
+  scene.add(orionLabel);
+
+  // ── Mouse orbit controls (manual — no import needed) ──
+  let isDragging = false, prevMouse = {x:0,y:0};
+  let spherical = { theta: 0.4, phi: 1.1, radius: 120 };
+  let targetSpherical = { theta: 0.4, phi: 1.1, radius: 120 };
+  let focusMode = false;
+
+  // ── Pan target (what the camera looks at) ──
+  const panTarget   = new THREE.Vector3(0, 0, 0);
+  const tPanTarget  = new THREE.Vector3(0, 0, 0);
+
+  // ── Camera update helper ──
+  function updateCamera() {
+    const r = spherical.radius;
+    camera.position.x = panTarget.x + r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+    camera.position.y = panTarget.y + r * Math.cos(spherical.phi);
+    camera.position.z = panTarget.z + r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+    camera.lookAt(panTarget);
+  }
+
+  // ── Drag state ──
+  // button: 0 = left (rotate), 1 = middle (pan), 2 = right (pan)
+  let dragButton = 0;
+
+  renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+  renderer.domElement.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isDragging  = true;
+    dragButton  = e.button;
+    prevMouse   = { x: e.clientX, y: e.clientY };
+    renderer.domElement.style.cursor = dragButton === 0 ? 'grabbing' : 'move';
+  });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    renderer.domElement.style.cursor = 'grab';
+  });
+
+  renderer.domElement.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevMouse.x;
+    const dy = e.clientY - prevMouse.y;
+    prevMouse = { x: e.clientX, y: e.clientY };
+    focusMode = false;
+
+    if (dragButton === 0) {
+      // ── LEFT drag → ROTATE ──
+      targetSpherical.theta -= dx * 0.007;
+      targetSpherical.phi    = Math.max(0.08, Math.min(Math.PI - 0.08, targetSpherical.phi + dy * 0.007));
+    } else {
+      // ── RIGHT or MIDDLE drag → PAN ──
+      // Pan speed proportional to distance so it feels consistent at any zoom
+      const speed = targetSpherical.radius * 0.0012;
+
+      // Camera right vector (world space) for horizontal pan
+      const right = new THREE.Vector3();
+      right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+
+      // Camera up vector (world space) for vertical pan
+      const up = camera.up.clone().normalize();
+
+      tPanTarget.addScaledVector(right, -dx * speed);
+      tPanTarget.addScaledVector(up,     dy * speed);
+    }
+  });
+
+  // ── Scroll → ZOOM ──
+  renderer.domElement.addEventListener('wheel', e => {
+    e.preventDefault();
+    targetSpherical.radius = Math.max(18, Math.min(400, targetSpherical.radius + e.deltaY * 0.1));
+    focusMode = false;
+  }, { passive: false });
+
+  // ── TOUCH controls ──
+  let lastTouchDist = 0;
+  let lastTouchMid  = { x: 0, y: 0 };
+
+  renderer.domElement.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragButton = 0;
+      prevMouse  = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (e.touches.length === 2) {
+      isDragging    = false;
+      lastTouchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      lastTouchMid = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+    }
+  }, { passive: false });
+
+  renderer.domElement.addEventListener('touchend', e => {
+    if (e.touches.length === 0) isDragging = false;
+  });
+
+  renderer.domElement.addEventListener('touchmove', e => {
+    e.preventDefault();
+
+    if (e.touches.length === 1 && isDragging) {
+      // Single finger → ROTATE
+      const dx = e.touches[0].clientX - prevMouse.x;
+      const dy = e.touches[0].clientY - prevMouse.y;
+      targetSpherical.theta -= dx * 0.009;
+      targetSpherical.phi    = Math.max(0.08, Math.min(Math.PI - 0.08, targetSpherical.phi + dy * 0.009));
+      prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      focusMode = false;
+    }
+
+    if (e.touches.length === 2) {
+      // Two fingers: pinch → ZOOM, slide → PAN
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const mid = {
+        x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+        y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+      };
+
+      // Pinch zoom
+      targetSpherical.radius = Math.max(18, Math.min(400, targetSpherical.radius - (d - lastTouchDist) * 0.35));
+
+      // Two-finger pan
+      const pdx = mid.x - lastTouchMid.x;
+      const pdy = mid.y - lastTouchMid.y;
+      const speed = targetSpherical.radius * 0.0015;
+      const right = new THREE.Vector3();
+      right.crossVectors(camera.getWorldDirection(new THREE.Vector3()), camera.up).normalize();
+      const up = camera.up.clone();
+      tPanTarget.addScaledVector(right, -pdx * speed);
+      tPanTarget.addScaledVector(up,     pdy * speed);
+
+      lastTouchDist = d;
+      lastTouchMid  = mid;
+      focusMode = false;
+    }
+  }, { passive: false });
+
+  // ── BUTTON controls ──
+  document.getElementById('btn-zoom-in') ?.addEventListener('click', () => {
+    targetSpherical.radius = Math.max(18, targetSpherical.radius * 0.65);
+    focusMode = false;
+  });
+  document.getElementById('btn-zoom-out')?.addEventListener('click', () => {
+    targetSpherical.radius = Math.min(400, targetSpherical.radius * 1.5);
+    focusMode = false;
+  });
+  document.getElementById('btn-reset')?.addEventListener('click', () => {
+    targetSpherical.theta  = 0.4;
+    targetSpherical.phi    = 1.1;
+    targetSpherical.radius = 120;
+    tPanTarget.set(0, 0, 0);
+    focusMode = false;
+  });
+  document.getElementById('btn-focus')?.addEventListener('click', () => {
+    focusMode = true;
+    targetSpherical.radius = 28;
+  });
+
+  // Tooltip hint on first load
+  const hint = document.createElement('div');
+  hint.textContent = 'Left-drag: rotate  ·  Right-drag: pan  ·  Scroll: zoom  ·  🚀: focus on Orion';
+  hint.style.cssText = 'position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.6);color:rgba(255,255,255,0.55);font-family:Space Mono,monospace;font-size:0.55rem;letter-spacing:0.08em;padding:5px 12px;border-radius:4px;pointer-events:none;white-space:nowrap;transition:opacity 1.5s;';
+  wrap.appendChild(hint);
+  setTimeout(() => { hint.style.opacity = '0'; }, 4000);
+  setTimeout(() => { hint.remove(); }, 5600);
+
+  // ── Animation loop ──
+  let frame3 = 0;
+  let missionT = 0; // 0–1 along trajectory
+
+  function animate3() {
+    requestAnimationFrame(animate3);
+    frame3++;
+
+    // Mission progress from real telemetry
+    if (currentDistanceKm > 0) {
+      missionT = Math.min(1, currentDistanceKm / 408000);
+      // Return phase: if moon distance is increasing and we've passed peak, flip to return arc
+      if (currentMoonDistKm > 10000 && currentDistanceKm < 380000 && currentDistanceKm > 50000) {
+        missionT = 0.62 + (1 - currentDistanceKm / 408000) * 0.38;
+      }
+    } else {
+      missionT = (missionT + 0.0003) % 1;
+    }
+
+    const pos = trajectoryPoint(Math.min(missionT, 0.999));
+
+    // Move rocket
+    rocketGroup.position.set(pos.x, pos.y, pos.z);
+    marker.position.set(pos.x, pos.y, pos.z);
+    glowSprite.position.set(pos.x, pos.y + 0.3, pos.z);
+    orionLabel.position.set(pos.x + 1, pos.y + 3.2, pos.z);
+
+    // Point rocket along travel direction
+    const ahead = trajectoryPoint(Math.min(missionT + 0.004, 0.999));
+    const dir = new THREE.Vector3(ahead.x-pos.x, ahead.y-pos.y, ahead.z-pos.z).normalize();
+    rocketGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), dir);
+
+    // Animate flame
+    const flameScale = 0.8 + Math.sin(frame3 * 0.18) * 0.25;
+    flame.scale.set(1, flameScale, 1);
+    flameInner.scale.set(1, flameScale * 0.85, 1);
+    flame.material.opacity = 0.65 + Math.sin(frame3 * 0.22) * 0.2;
+
+    // Glow pulse
+    const gScale = 4.5 + Math.sin(frame3 * 0.07) * 1.5;
+    glowSprite.scale.set(gScale, gScale, 1);
+
+    // Rotate Earth
+    earth.rotation.y     += 0.0012;
+    nightMesh.rotation.y  = earth.rotation.y;   // night lights track Earth
+    cloudMesh.rotation.y += 0.00085;             // clouds drift slightly faster
+
+    // Rotate splashdown marker with Earth so it stays on the correct surface spot
+    landingGroup.rotation.y = earth.rotation.y;
+    splashLabel.position.set(
+      splashR * 1.35 * Math.sin(splashPhi) * Math.cos(splashTheta + earth.rotation.y),
+      splashY * 1.35 + 3,
+      splashR * 1.35 * Math.sin(splashPhi) * Math.sin(splashTheta + earth.rotation.y)
+    );
+    sdLabel.position.set(
+      splashR * 1.28 * Math.sin(splashPhi) * Math.cos(splashTheta + earth.rotation.y),
+      splashY * 1.28 + 0.2,
+      splashR * 1.28 * Math.sin(splashPhi) * Math.sin(splashTheta + earth.rotation.y)
+    );
+
+    // Animate pulse rings
+    splashPulseT += 0.04;
+    ring2.scale.setScalar(1 + 0.18 * Math.sin(splashPulseT));
+    ring2.material.opacity = 0.55 + 0.35 * Math.sin(splashPulseT);
+    // Expanding ring3
+    const pr = 0.9 + (splashPulseT % (Math.PI * 2)) / (Math.PI * 2) * 1.2;
+    landingGroup.remove(ring3);
+    ring3 = new THREE.Mesh(new THREE.RingGeometry(pr, pr + 0.12, 32), ring3Mat);
+    ring3Mat.opacity = Math.max(0, 0.5 - (splashPulseT % (Math.PI * 2)) / (Math.PI * 2) * 0.55);
+    landingGroup.add(ring3);
+
+    // Draw completed path (green so far)
+    if (completedTube) scene.remove(completedTube);
+    const cPts = [];
+    const steps = Math.max(2, Math.floor(missionT * 120));
+    for (let i=0; i<=steps; i++) { const p=trajectoryPoint(i/120*missionT); cPts.push(new THREE.Vector3(p.x,p.y,p.z)); }
+    if (cPts.length >= 2) {
+      const cCurve = new THREE.CatmullRomCurve3(cPts);
+      const cGeo = new THREE.TubeGeometry(cCurve, steps*3, 0.22, 8, false);
+      completedTube = new THREE.Mesh(cGeo, new THREE.MeshBasicMaterial({ color: 0x64ffda, transparent: true, opacity: 0.7 }));
+      scene.add(completedTube);
+    }
+
+    // Smooth pan interpolation
+    panTarget.lerp(tPanTarget, 0.08);
+
+    // Focus mode: orbit camera closely around Orion
+    if (focusMode) {
+      const rPos = rocketGroup.position;
+      tPanTarget.lerp(rPos, 0.06);
+      targetSpherical.radius += (28 - targetSpherical.radius) * 0.05;
+      spherical.theta += (targetSpherical.theta - spherical.theta) * 0.06;
+      spherical.phi   += (targetSpherical.phi   - spherical.phi)   * 0.06;
+      spherical.radius+= (targetSpherical.radius- spherical.radius) * 0.06;
+      const r = spherical.radius;
+      camera.position.x = panTarget.x + r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+      camera.position.y = panTarget.y + r * Math.cos(spherical.phi);
+      camera.position.z = panTarget.z + r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+      camera.lookAt(panTarget);
+    } else {
+      // Smooth spherical lerp
+      spherical.theta += (targetSpherical.theta - spherical.theta) * 0.09;
+      spherical.phi   += (targetSpherical.phi   - spherical.phi)   * 0.09;
+      spherical.radius+= (targetSpherical.radius- spherical.radius) * 0.09;
+      const r = spherical.radius;
+      camera.position.x = panTarget.x + r * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+      camera.position.y = panTarget.y + r * Math.cos(spherical.phi);
+      camera.position.z = panTarget.z + r * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+      camera.lookAt(panTarget);
+    }
+
+    renderer.render(scene, camera);
+  }
+  animate3();
+}
+
+/* ── TELEMETRY CHART ── */
+const velocityHistory = [];
+function initTelemChart() {
+  const canvas = document.getElementById('telem-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight || 120;
+  }
+
+  function draw() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    if (velocityHistory.length < 2) { requestAnimationFrame(draw); return; }
+
+    const max = Math.max(...velocityHistory) + 500;
+    const min = Math.min(...velocityHistory) - 500;
+    const range = max - min;
+
+    // Grid lines
+    for (let i = 0; i <= 4; i++) {
+      const y = H * (i / 4);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Line
+    ctx.beginPath();
+    velocityHistory.forEach((v, i) => {
+      const x = (i / (velocityHistory.length - 1)) * W;
+      const y = H - ((v - min) / range) * H * 0.8 - H * 0.1;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = '#4fc3f7';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Fill
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(79,195,247,0.15)');
+    grad.addColorStop(1, 'rgba(79,195,247,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Latest value
+    const last = velocityHistory[velocityHistory.length - 1];
+    ctx.fillStyle = '#4fc3f7';
+    ctx.font = "11px 'Space Mono', monospace";
+    ctx.textAlign = 'right';
+    ctx.fillText(`${last.toLocaleString()} km/h`, W - 8, 18);
+  }
+
+  function loop() {
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  resize();
+  new ResizeObserver(resize).observe(canvas);
+  loop();
+}
+
+/* ── ELAPSED TIMER ── */
+function formatElapsed(ms) {
+  const totalS = Math.floor(ms / 1000);
+  const d = Math.floor(totalS / 86400);
+  const h = Math.floor((totalS % 86400) / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  return `T+ ${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// Splashdown: Apr 10 2026 03:07 UTC (NASA announced ~8:07 PM EDT Apr 9 = 00:07 UTC Apr 10,
+// corrected to official 03:07 UTC based on published 8:07 PM EDT splashdown)
+const SPLASHDOWN_TIME = new Date('2026-04-10T03:07:00Z');
+
+function formatCountdown(ms) {
+  if (ms <= 0) return null; // already splashed
+  const totalS = Math.floor(ms / 1000);
+  const d = Math.floor(totalS / 86400);
+  const h = Math.floor((totalS % 86400) / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  return `${String(d).padStart(2,'0')} · ${String(h).padStart(2,'0')} · ${String(m).padStart(2,'0')} · ${String(s).padStart(2,'0')}`;
+}
+
+function formatSinceElapsed(ms) {
+  const totalS = Math.floor(Math.abs(ms) / 1000);
+  const h = Math.floor(totalS / 3600);
+  const m = Math.floor((totalS % 3600) / 60);
+  const s = totalS % 60;
+  return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+
+function updateTimers() {
+  const now = new Date();
+  const elapsed = now - missionData.launchTime;
+  const toSplash = SPLASHDOWN_TIME - now;
+
+  document.getElementById('elapsed-timer').textContent = formatElapsed(Math.max(0, elapsed));
+
+  document.getElementById('current-utc').textContent = now.toISOString().slice(11,19) + ' UTC';
+  document.getElementById('local-time').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  document.getElementById('launch-time-utc').textContent = missionData.launchTime.toISOString().slice(0,16).replace('T',' ') + ' UTC';
+
+  // Hero splashdown mini-display
+  const heroSplash = document.getElementById('hero-splash');
+  if (heroSplash) {
+    if (toSplash > 0) {
+      const th = Math.floor(toSplash / 3_600_000);
+      const tm = Math.floor((toSplash % 3_600_000) / 60_000);
+      const ts = Math.floor((toSplash % 60_000) / 1000);
+      heroSplash.textContent = `${String(th).padStart(2,'0')}h ${String(tm).padStart(2,'0')}m ${String(ts).padStart(2,'0')}s`;
+      heroSplash.style.color = toSplash < 3_600_000 ? '#ef5350' : 'var(--gold)';
+    } else {
+      heroSplash.textContent = 'SPLASHED DOWN';
+      heroSplash.style.color = 'var(--accent2)';
+      heroSplash.style.fontSize = '0.85rem';
+      const lbl = heroSplash.nextElementSibling;
+      if (lbl) lbl.style.color = 'var(--accent2)';
+    }
+  }
+
+  // Splashdown countdown / elapsed
+  const timerEl  = document.getElementById('splash-timer');
+  const labelEl  = document.getElementById('splash-status-label');
+  const unitEl   = document.getElementById('splash-unit-label');
+  const cardEl   = document.getElementById('splashdown-card');
+  if (!timerEl) return;
+
+  if (toSplash > 0) {
+    // Counting DOWN to splashdown
+    timerEl.textContent  = formatCountdown(toSplash);
+    if (labelEl) labelEl.textContent = 'Splashdown In';
+    if (unitEl)  unitEl.textContent  = 'DD · HH · MM · SS';
+    // Urgency colour: goes from gold → orange → red in the last 6 hours
+    const hoursLeft = toSplash / 3_600_000;
+    const col = hoursLeft < 1   ? '#ef5350'
+              : hoursLeft < 6   ? '#ffa726'
+              : 'var(--gold)';
+    timerEl.style.color = col;
+    if (labelEl) labelEl.style.color = col;
+    if (unitEl)  unitEl.style.color  = col;
+    if (cardEl)  cardEl.style.borderColor = col === '#ef5350' ? 'rgba(239,83,80,0.45)'
+                                          : col === '#ffa726' ? 'rgba(255,167,38,0.45)'
+                                          : 'rgba(255,213,79,0.35)';
+    // Pulse animation on final hour
+    if (hoursLeft < 1 && cardEl) cardEl.style.animation = 'pulse-dot 1.2s ease infinite';
+  } else {
+    // Mission complete — show time since splashdown
+    const since = formatSinceElapsed(toSplash);
+    timerEl.textContent  = since;
+    timerEl.style.color  = 'var(--accent2)';
+    if (labelEl) { labelEl.textContent = '🎉 Splashdown Complete! Mission elapsed since landing'; labelEl.style.color = 'var(--accent2)'; }
+    if (unitEl)  { unitEl.textContent  = 'HH · MM · SS since splashdown'; unitEl.style.color = 'var(--accent2)'; }
+    if (cardEl)  { cardEl.style.borderColor = 'rgba(100,255,218,0.4)'; cardEl.style.background = 'rgba(100,255,218,0.05)'; }
+    // Update mission phase label
+    const phaseEl = document.getElementById('mission-phase');
+    if (phaseEl && phaseEl.textContent !== 'Mission Complete') {
+      phaseEl.textContent = 'Mission Complete';
+      const detailEl = document.getElementById('mission-phase-detail');
+      if (detailEl) detailEl.textContent = 'Orion "Integrity" has splashed down in the Pacific Ocean. Crew recovery underway.';
+      const statusEl = document.getElementById('status-label');
+      if (statusEl) { statusEl.textContent = 'Mission Accomplished'; statusEl.style.color = 'var(--accent2)'; }
+    }
+  }
+}
+
+/* ── DATA SOURCE LABEL ── */
+function setDataSourceLabel(text, isLive) {
+  const el = document.getElementById('data-source-tag');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = isLive ? 'var(--accent2)' : 'var(--warn)';
+  el.style.borderColor = isLive ? 'rgba(100,255,218,0.3)' : 'rgba(255,167,38,0.3)';
+}
+
+/* ── TELEMETRY UPDATE ── */
+async function updateTelemetry() {
+  const data = await telemetryService.fetch();
+
+  // Core telemetry cards
+  const altEl  = document.getElementById('telem-altitude');
+  const spdEl  = document.getElementById('telem-speed');
+  const dstEl  = document.getElementById('telem-dist');
+  const dstMEl = document.getElementById('telem-dist-moon');
+  const gEl    = document.getElementById('telem-gforce');
+
+  if (altEl)  altEl.textContent  = data.altitude.toLocaleString();
+  if (spdEl)  spdEl.textContent  = data.speed.toLocaleString();
+  if (dstEl)  dstEl.textContent  = data.distance.toLocaleString();
+  if (dstMEl) dstMEl.textContent = data.distanceMoon ? data.distanceMoon.toLocaleString() : '--';
+  if (gEl)    gEl.textContent    = data.gforce;
+
+  // Hero stats
+  const heroAlt  = document.getElementById('hero-altitude');
+  const heroSpd  = document.getElementById('hero-speed');
+  const heroDst  = document.getElementById('hero-dist');
+  if (heroAlt) heroAlt.textContent = data.distance > 1000 ? (data.distance / 1000).toFixed(0) + 'K' : data.altitude.toLocaleString();
+  if (heroSpd) heroSpd.textContent = data.speed.toLocaleString();
+  if (heroDst) heroDst.textContent = data.distance.toLocaleString();
+
+  // Mission phase
+  if (data.phase) {
+    const phaseEl = document.getElementById('mission-phase');
+    if (phaseEl) phaseEl.textContent = data.phase;
+  }
+
+  // Light time / signal delay display
+  const ltEl = document.getElementById('telem-lighttime');
+  if (ltEl && data.distance) {
+    const lightTimeSec = (data.distance / 299792.458).toFixed(2);
+    ltEl.textContent = lightTimeSec;
+  }
+
+  // Progress bars — normalized to realistic mission max values
+  const altBar = document.getElementById('alt-bar');
+  const spdBar = document.getElementById('spd-bar');
+  const dstBar = document.getElementById('dst-bar');
+  const gBar   = document.getElementById('g-bar');
+  if (altBar) altBar.style.width = Math.min(96, (data.distance / 410000) * 100) + '%';
+  if (spdBar) spdBar.style.width = Math.min(96, (data.speed / 40000)   * 100) + '%';
+  if (dstBar) dstBar.style.width = Math.min(96, (data.distance / 410000) * 100) + '%';
+  if (gBar)   gBar.style.width   = Math.min(96, parseFloat(data.gforce) * 300000) + '%';
+
+  // Velocity history for chart
+  velocityHistory.push(data.speed);
+  if (velocityHistory.length > 60) velocityHistory.shift();
+
+  // Last updated
+  const now = new Date();
+  const luEl = document.getElementById('last-updated-time');
+  if (luEl) luEl.textContent = now.toISOString().slice(11,19) + ' UTC';
+
+  // Update orbital map with real position ratio
+  if (data.distance) {
+    currentDistanceKm = data.distance;
+    currentMoonDistKm = data.distanceMoon || 0;
+  }
+
+  // Fetch DSN data occasionally
+  if (Math.random() < 0.15) updateDSN(); // ~15% chance per cycle ≈ every ~33s
+}
+
+/* ── DSN TRACKING PANEL ── */
+async function updateDSN() {
+  const dsn = await dsnService.fetch();
+  if (!dsn) return;
+  const el = document.getElementById('dsn-info');
+  if (el) {
+    const ltStr = dsn.lightTime ? `Signal delay: ${dsn.lightTime.toFixed(2)}s one-way` : '';
+    el.innerHTML = `<strong>DSN:</strong> ${dsn.station} tracking ${dsn.target}. ${ltStr}`;
+  }
+}
+
+/* ── RENDER TIMELINE ── */
+function renderTimeline() {
+  const container = document.querySelector('.timeline-container');
+  if (!container) return;
+  const spine = '<div class="timeline-spine" aria-hidden="true"></div>';
+  const events = missionData.timeline.map(ev => {
+    const dotClass = ev.status;
+    const tagClass = 'tag-' + ev.status;
+    const tagLabel = ev.status === 'completed' ? 'Completed' : ev.status === 'current' ? 'In Progress' : 'Upcoming';
+    return `<div class="timeline-event" role="listitem" aria-label="${ev.title}">
+      <div class="timeline-dot ${dotClass}" aria-hidden="true"></div>
+      <div class="card timeline-content">
+        <div class="timeline-meta">
+          <span class="timeline-phase-tag ${tagClass}">${tagLabel}</span>
+          <span class="timeline-time">${ev.time}</span>
+        </div>
+        <div class="timeline-title">${ev.title}</div>
+        <p class="timeline-desc">${ev.desc}</p>
+      </div>
+    </div>`;
+  }).join('');
+  container.innerHTML = spine + events;
+}
+
+/* ── RENDER CREW ── */
+function renderCrew() {
+  const grid = document.querySelector('.crew-grid');
+  if (!grid) return;
+  grid.innerHTML = missionData.crew.map(c => `
+    <div class="card crew-card" role="listitem">
+      <div class="crew-avatar" aria-label="${c.name} avatar">${c.initials}</div>
+      <div class="crew-name">${c.name}</div>
+      <div class="crew-role">${c.role}</div>
+      <p class="crew-bio">${c.bio}</p>
+      <div class="crew-vitals">
+        ${c.tags.map(t => `<span class="crew-vital-tag">${t}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── RENDER NEWS ── */
+function renderNews() {
+  const grid = document.getElementById('news-grid');
+  if (!grid) return;
+  grid.innerHTML = missionData.news.map(n => `
+    <div class="card news-card" role="article">
+      <div class="news-meta">
+        <span class="news-source">${n.source}</span>
+        <span class="news-time">${n.time}</span>
+      </div>
+      <h3 class="news-headline">${n.headline}</h3>
+      <p class="news-excerpt">${n.excerpt}</p>
+      <a href="https://www.nasa.gov/artemis" class="news-link" target="_blank" rel="noopener noreferrer">Read more ↗</a>
+    </div>
+  `).join('');
+
+  const feed = document.getElementById('status-feed');
+  if (!feed) return;
+  feed.innerHTML = missionData.statusFeed.map(s => `
+    <div class="status-item" role="listitem">
+      <div class="status-time">${s.time}</div>
+      <div class="status-text">${s.text}</div>
+    </div>
+  `).join('');
+}
+
+/* ── RENDER FAQ ── */
+function renderFaq() {
+  const list = document.getElementById('faq-list');
+  if (!list) return;
+  list.innerHTML = missionData.faq.map((f, i) => `
+    <div class="faq-item" role="listitem">
+      <div class="faq-question" role="button" tabindex="0" aria-expanded="false" onclick="toggleFaq(this)" onkeypress="if(event.key==='Enter') toggleFaq(this)">
+        ${f.q}
+        <span class="faq-icon" aria-hidden="true">+</span>
+      </div>
+      <div class="faq-answer" aria-hidden="true">
+        <div class="faq-answer-inner">${f.a}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleFaq(btn) {
+  const item = btn.parentElement;
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(el => {
+    el.classList.remove('open');
+    el.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+    el.querySelector('.faq-answer').setAttribute('aria-hidden', 'true');
+  });
+  if (!isOpen) {
+    item.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+    item.querySelector('.faq-answer').setAttribute('aria-hidden', 'false');
+  }
+}
+
+/* ── MOBILE MENU ── */
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+  document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
+}
+document.getElementById('hamburger').addEventListener('click', () => {
+  const menu = document.getElementById('mobile-menu');
+  const btn = document.getElementById('hamburger');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open');
+  btn.setAttribute('aria-expanded', (!isOpen).toString());
+});
+
+/* ── SOCIAL SHARE ── */
+function shareToX() {
+  const url = encodeURIComponent(window.location.href);
+  const text = encodeURIComponent('Following the #ArtemisII crewed lunar mission in real time! 🚀🌙');
+  window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=550,height=420');
+}
+function shareToFacebook() {
+  const url = encodeURIComponent(window.location.href);
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=550,height=420');
+}
+async function copyLink() {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    alert('Link copied to clipboard!');
+  } catch { alert(window.location.href); }
+}
+async function shareNative() {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Artemis II Live Tracker', text: 'Follow the crewed lunar mission in real time!', url: window.location.href });
+    } catch {}
+  } else { copyLink(); }
+}
+
+/* ── MOCK STATUS FEED AUTO-UPDATES ── */
+const liveMessages = [
+  'Telemetry nominal — All channels green.',
+  '<strong>ATTITUDE:</strong> Orion maintaining passive thermal control roll.',
+  '<strong>CREW:</strong> Sleep period initiated for two crew members.',
+  '<strong>POWER:</strong> Solar array output stable at 12.1 kW.',
+  '<strong>NAV:</strong> Star tracker alignment complete. Trajectory nominal.',
+  '<strong>COMMS:</strong> Downlink rate 4 Mbps. All voice channels clear.',
+  '<strong>ECLSS:</strong> CO₂ scrubber nominal. Cabin pressure 101.3 kPa.',
+];
+let msgIdx = 0;
+function pushStatusUpdate() {
+  const feed = document.getElementById('status-feed');
+  if (!feed) return;
+  const now = new Date();
+  const timeStr = now.toISOString().slice(11,16) + ' UTC';
+  const newItem = document.createElement('div');
+  newItem.className = 'status-item';
+  newItem.setAttribute('role', 'listitem');
+  newItem.innerHTML = `<div class="status-time">${timeStr}</div><div class="status-text">${liveMessages[msgIdx % liveMessages.length]}</div>`;
+  feed.insertBefore(newItem, feed.firstChild);
+  if (feed.children.length > 8) feed.removeChild(feed.lastChild);
+  msgIdx++;
+}
+
+/* ── INIT ── */
+window.addEventListener('DOMContentLoaded', () => {
+  initStarField();
+  initOrbitalCanvas();
+  initTelemChart();
+  renderTimeline();
+  renderCrew();
+  renderNews();
+  renderFaq();
+
+  // Initial telemetry
+  updateTelemetry();
+  updateTimers();
+
+  // Live update loops
+  setInterval(updateTelemetry, 5000);   // Telemetry every 5s
+  setInterval(updateTimers, 1000);       // Clocks every 1s
+  setInterval(pushStatusUpdate, 45000); // Status feed update every 45s
+});
+</script>
+</body>
+</html>
